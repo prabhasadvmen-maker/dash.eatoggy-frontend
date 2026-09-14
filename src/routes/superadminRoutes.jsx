@@ -6,6 +6,7 @@ import Login from '../pages/auth/Login';
 import Dashboard from '../pages/superadmin/Dashboard';
 import Admins from '../pages/superadmin/Admins';
 import Restaurants from '../pages/superadmin/Restaurants';
+import DeliveryPartners from '../pages/superadmin/DeliveryPartners';
 import ComingSoon from '../pages/website/ComingSoon';
 import {
   UserSquare2, Bike, ShoppingBag, CreditCard, MenuSquare,
@@ -28,7 +29,7 @@ export const renderSuperAdminRoutes = () => (
       <Route path="admins-roles" element={<Admins />} />
       <Route path="customers" element={<ComingSoon title="Customers" icon={UserSquare2} />} />
       <Route path="restaurants" element={<Restaurants />} />
-      <Route path="delivery-partners" element={<ComingSoon title="Delivery Partners" icon={Bike} />} />
+      <Route path="delivery-partners" element={<DeliveryPartners />} />
       <Route path="orders" element={<ComingSoon title="Orders" icon={ShoppingBag} />} />
       <Route path="subscriptions" element={<ComingSoon title="Subscriptions" icon={CreditCard} />} />
       <Route path="menu-management" element={<ComingSoon title="Menu Management" icon={MenuSquare} />} />

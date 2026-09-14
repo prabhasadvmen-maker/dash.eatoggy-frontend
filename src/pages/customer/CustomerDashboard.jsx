@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { customerGetMe } from '../../services/customerAuthService.js';
 import {
   LayoutDashboard,
   Home,
@@ -124,16 +125,28 @@ const CustomerDashboard = () => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('customer_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    } else {
-      setUser({ name: 'Rahul Sharma', email: 'rahul.sharma434@gmail.com', walletBalance: 250 });
-    }
-  }, []);
+    const fetchCustomerProfile = async () => {
+      try {
+        const res = await customerGetMe();
+        if (res.ok && res.data.success) {
+          setUser(res.data.data.customer);
+          localStorage.setItem('customer_user', JSON.stringify(res.data.data.customer));
+        } else {
+          localStorage.removeItem('customer_token');
+          localStorage.removeItem('customer_user');
+          navigate('/user/login');
+        }
+      } catch (err) {
+        localStorage.removeItem('customer_token');
+        localStorage.removeItem('customer_user');
+        navigate('/user/login');
+      }
+    };
+    fetchCustomerProfile();
+  }, [navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem('user_token');
+    localStorage.removeItem('customer_token');
     localStorage.removeItem('customer_user');
     navigate('/user/login');
   };
@@ -274,11 +287,12 @@ const CustomerDashboard = () => {
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
+                title="User Profile Menu"
                 className="flex items-center gap-3 p-1.5 pl-3 rounded-full hover:bg-gray-100 transition-colors border border-gray-100 cursor-pointer"
               >
                 <div className="text-right hidden md:block">
-                  <div className="text-xs font-bold text-gray-900 leading-none">{user?.email || 'rahul.sharma434@gmail.com'}</div>
-                  <div className="text-[10px] text-gray-400 mt-0.5">Customer Account</div>
+                  <div className="text-xs font-bold text-gray-900 leading-none">{user?.name || 'Customer User'}</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">{user?.email || 'customer@eatoggy.com'}</div>
                 </div>
                 <div className="w-8 h-8 rounded-full bg-[#1e1e2e] text-[#d4af37] font-bold flex items-center justify-center text-xs shadow-sm">
                   {user?.name ? user.name.charAt(0).toUpperCase() : 'R'}
