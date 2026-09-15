@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Settings, Eye, CheckCircle2, XCircle, Trash2, Loader2, Store, RefreshCw, X, MapPin, Phone, Mail, FileText, Video, Image as ImageIcon, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Settings, Eye, CheckCircle2, XCircle, Trash2, Loader2, Store, RefreshCw, X, MapPin, Phone, Mail, FileText, Video, Image as ImageIcon, ToggleLeft, ToggleRight, DollarSign } from 'lucide-react';
 import API_BASE_URL from '../../services/apiService';
+import { getOnboardingFeeSetting, updateOnboardingFeeSetting } from '../../services/superadmin/superAdminRestaurantService';
 
 const Restaurants = () => {
   const [restaurants, setRestaurants] = useState([]);
@@ -16,6 +17,11 @@ const Restaurants = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [previewMedia, setPreviewMedia] = useState(null);
+
+  // Fee Setting State
+  const [isFeeModalOpen, setIsFeeModalOpen] = useState(false);
+  const [feeAmount, setFeeAmount] = useState('');
+  const [feeLoading, setFeeLoading] = useState(false);
 
   const getFileType = (url, defaultType = 'image') => {
     if (!url) return 'none';
@@ -95,7 +101,36 @@ const Restaurants = () => {
 
   useEffect(() => {
     fetchRestaurants();
+    fetchFee();
   }, []);
+
+  const fetchFee = async () => {
+    try {
+      const res = await getOnboardingFeeSetting();
+      if (res.ok && res.data?.data) {
+        setFeeAmount(res.data.data.amount || 999);
+      }
+    } catch (err) {
+      console.error('Failed to load fee setting');
+    }
+  };
+
+  const handleUpdateFee = async () => {
+    setFeeLoading(true);
+    try {
+      const res = await updateOnboardingFeeSetting(feeAmount);
+      if (res.ok) {
+        setIsFeeModalOpen(false);
+        alert('Onboarding fee updated successfully!');
+      } else {
+        alert(res.data?.message || 'Failed to update fee');
+      }
+    } catch (err) {
+      alert('Network error while updating fee');
+    } finally {
+      setFeeLoading(false);
+    }
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -279,12 +314,20 @@ const Restaurants = () => {
           <h1 className="text-2xl font-bold text-gray-900">Restaurants & Kitchens</h1>
           <p className="text-gray-500 text-sm mt-1">Manage restaurant applications, onboarding, and partner accounts</p>
         </div>
-        <button 
-          onClick={fetchRestaurants}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 rounded-xl text-sm font-medium shadow-sm transition-all self-start sm:self-auto cursor-pointer"
-        >
-          <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setIsFeeModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 rounded-xl text-sm font-medium shadow-sm transition-all cursor-pointer"
+          >
+            <DollarSign size={16} /> Fee Settings
+          </button>
+          <button 
+            onClick={fetchRestaurants}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 rounded-xl text-sm font-medium shadow-sm transition-all cursor-pointer"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> Refresh
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -544,12 +587,28 @@ const Restaurants = () => {
                         <p><span className="font-semibold text-gray-700">Bank Holder:</span> {selectedRestaurant.bankDetails.accountHolderName || 'N/A'}</p>
                         <p><span className="font-semibold text-gray-700">Account No:</span> {selectedRestaurant.bankDetails.accountNumber || 'N/A'}</p>
                         <p><span className="font-semibold text-gray-700">IFSC Code:</span> {selectedRestaurant.bankDetails.ifscCode || 'N/A'}</p>
-                        <p><span className="font-semibold text-gray-700">UPI ID:</span> {selectedRestaurant.bankDetails.upiId || 'N/A'}</p>
+                        <p><span className="font-semibold text-gray-700">Bank Name:</span> {selectedRestaurant.bankDetails.bankName || 'N/A'}</p>
                       </>
                     )}
                   </div>
                 </div>
               </div>
+
+              {/* Payment Data */}
+              {selectedRestaurant.paymentData && (
+                <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl">
+                  <h3 className="font-bold text-blue-900 mb-2 border-b border-blue-200 pb-2 text-sm flex items-center gap-2">
+                    <CheckCircle2 size={16} className="text-blue-500" /> Payment Verification
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-blue-800">
+                    <p><span className="font-semibold">Amount Paid:</span> ₹{selectedRestaurant.paymentData.amount || '0'}</p>
+                    <p><span className="font-semibold">Status:</span> {selectedRestaurant.paymentData.status}</p>
+                    <p><span className="font-semibold">Razorpay Order ID:</span> {selectedRestaurant.paymentData.razorpayOrderId}</p>
+                    <p><span className="font-semibold">Razorpay Payment ID:</span> {selectedRestaurant.paymentData.razorpayPaymentId || 'N/A'}</p>
+                    <p><span className="font-semibold">Verified On:</span> {new Date(selectedRestaurant.paymentData.verifiedAt).toLocaleString()}</p>
+                  </div>
+                </div>
+              )}
 
               {/* R2 Documents Section with Live Image & Video Previews */}
               <div>
@@ -689,6 +748,45 @@ const Restaurants = () => {
           </div>
         </div>
       )}
+      {/* Fee Settings Modal */}
+      {isFeeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm flex flex-col overflow-hidden animate-fadeIn">
+            <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+              <h2 className="text-lg font-bold text-gray-900">Registration Fee</h2>
+              <button onClick={() => setIsFeeModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Onboarding Fee (₹)</label>
+              <input 
+                type="number"
+                value={feeAmount}
+                onChange={(e) => setFeeAmount(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#d4af37] focus:border-transparent outline-none"
+              />
+              <p className="text-xs text-gray-500 mt-2">This is the fee charged to restaurants during step 4 of onboarding.</p>
+            </div>
+            <div className="p-4 border-t bg-gray-50 flex justify-end gap-2">
+              <button 
+                onClick={() => setIsFeeModalOpen(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleUpdateFee}
+                disabled={feeLoading}
+                className="px-4 py-2 bg-[#d4af37] text-white rounded-xl hover:bg-[#b5952f] text-sm font-medium disabled:opacity-50"
+              >
+                {feeLoading ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

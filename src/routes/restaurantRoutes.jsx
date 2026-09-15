@@ -3,8 +3,9 @@ import { Route } from 'react-router-dom';
 import ProtectedRoute from '../components/common/ProtectedRoute';
 import RestaurantDashboardLayout from '../layouts/restaurant/RestaurantDashboardLayout';
 import RestaurantLogin from '../pages/auth/RestaurantLogin';
-import RestaurantSignup from '../pages/restaurant/RestaurantSignup';
+import RestaurantOnboardingWizard from '../pages/restaurant/RestaurantOnboardingWizard';
 import RestaurantOverview from '../pages/restaurant/RestaurantOverview';
+import MenuManagement from '../pages/restaurant/MenuManagement';
 import ComingSoon from '../pages/website/ComingSoon';
 import {
   ShoppingBag, UtensilsCrossed, CreditCard, MenuSquare, Bike,
@@ -14,7 +15,11 @@ import {
 export const renderRestaurantRoutes = () => (
   <>
     <Route path="/restaurant-login" element={<RestaurantLogin />} />
-    <Route path="/restaurant-signup" element={<RestaurantSignup />} />
+    <Route path="/restaurant-onboarding" element={
+      <ProtectedRoute roleType="restaurant">
+        <RestaurantOnboardingWizard />
+      </ProtectedRoute>
+    } />
     <Route
       path="/restaurant"
       element={
@@ -27,7 +32,7 @@ export const renderRestaurantRoutes = () => (
       <Route path="orders" element={<ComingSoon title="Orders" icon={ShoppingBag} />} />
       <Route path="kitchen" element={<ComingSoon title="Kitchen / Production" icon={UtensilsCrossed} />} />
       <Route path="subscriptions" element={<ComingSoon title="Subscriptions" icon={CreditCard} />} />
-      <Route path="menu" element={<ComingSoon title="Menu Management" icon={MenuSquare} />} />
+      <Route path="menu" element={<MenuManagement />} />
       <Route path="delivery" element={<ComingSoon title="Delivery & Pickup" icon={Bike} />} />
       <Route path="earnings" element={<ComingSoon title="Earnings / Payouts" icon={IndianRupee} />} />
       <Route path="reviews" element={<ComingSoon title="Reviews & Ratings" icon={Star} />} />

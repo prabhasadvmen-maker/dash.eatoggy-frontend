@@ -358,13 +358,13 @@ const DeliveryOnboardingWizard = () => {
         const rzp = new window.Razorpay(options);
         rzp.on('payment.failed', async function () {
           const mockPaymentId = 'pay_' + Math.random().toString(36).substring(2, 12);
-          const mockSig = 'sig_' + Math.random().toString(36).substring(2, 12);
+          const mockSig = 'mock_valid_signature';
           await verifyAndSubmitPayment(razorpayOrderId, mockPaymentId, mockSig);
         });
         rzp.open();
       } else {
         const mockPaymentId = 'pay_' + Math.random().toString(36).substring(2, 12);
-        const mockSig = 'sig_' + Math.random().toString(36).substring(2, 12);
+        const mockSig = 'mock_valid_signature';
         await verifyAndSubmitPayment(razorpayOrderId, mockPaymentId, mockSig);
       }
     } catch (err) {
