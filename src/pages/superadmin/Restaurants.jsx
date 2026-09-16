@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Settings, Eye, CheckCircle2, XCircle, Trash2, Loader2, Store, RefreshCw, X, MapPin, Phone, Mail, FileText, Video, Image as ImageIcon, ToggleLeft, ToggleRight, DollarSign } from 'lucide-react';
 import API_BASE_URL from '../../services/apiService';
 import { getOnboardingFeeSetting, updateOnboardingFeeSetting } from '../../services/superadmin/superAdminRestaurantService';
+import ConfirmModal from '../../components/common/ConfirmModal/ConfirmModal';
 
 const Restaurants = () => {
   const [restaurants, setRestaurants] = useState([]);
@@ -22,6 +23,12 @@ const Restaurants = () => {
   const [isFeeModalOpen, setIsFeeModalOpen] = useState(false);
   const [feeAmount, setFeeAmount] = useState('');
   const [feeLoading, setFeeLoading] = useState(false);
+
+  // Confirm Modal State
+  const [confirmModal, setConfirmModal] = useState({
+    open: false,
+    id: null
+  });
 
   const getFileType = (url, defaultType = 'image') => {
     if (!url) return 'none';
@@ -210,10 +217,14 @@ const Restaurants = () => {
     setActionLoading(false);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this restaurant record? This action cannot be undone.')) {
-      return;
-    }
+  const confirmDelete = (id) => {
+    setConfirmModal({ open: true, id });
+    setActiveDropdownId(null);
+  };
+
+  const handleDelete = async () => {
+    const id = confirmModal.id;
+    if (!id) return;
     setActionLoading(true);
     try {
       const token = localStorage.getItem('superadmin_token');
@@ -235,6 +246,7 @@ const Restaurants = () => {
       alert('Network error while deleting restaurant');
     }
     setActionLoading(false);
+    setConfirmModal({ open: false, id: null });
   };
 
   const handleToggleEnable = async (id) => {
@@ -521,7 +533,7 @@ const Restaurants = () => {
 
                             {/* Delete Option */}
                             <button
-                              onClick={() => handleDelete(restaurant._id)}
+                              onClick={() => confirmDelete(restaurant._id)}
                               className="w-full text-left px-4 py-2 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors cursor-pointer"
                             >
                               <Trash2 size={16} className="text-red-500" /> Delete Record
@@ -665,7 +677,7 @@ const Restaurants = () => {
               ) : (
                 <>
                   <button 
-                    onClick={() => handleDelete(selectedRestaurant._id)}
+                    onClick={() => { setIsModalOpen(false); confirmDelete(selectedRestaurant._id); }}
                     className="flex items-center gap-1.5 px-4 py-2 text-red-600 hover:bg-red-50 rounded-xl text-sm font-medium transition-colors border border-red-200 mr-auto cursor-pointer"
                   >
                     <Trash2 size={16} /> Delete Record
@@ -786,6 +798,19 @@ const Restaurants = () => {
           </div>
         </div>
       )}
+
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        open={confirmModal.open}
+        title="Delete Restaurant"
+        message="Are you sure you want to delete this restaurant record? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        loading={actionLoading}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmModal({ open: false, id: null })}
+      />
 
     </div>
   );

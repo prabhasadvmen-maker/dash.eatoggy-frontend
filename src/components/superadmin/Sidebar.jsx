@@ -18,7 +18,8 @@ import {
   BarChart3,
   Settings,
   UserCircle,
-  HelpCircle
+  HelpCircle,
+  ImageIcon
 } from 'lucide-react';
 
 const mainNavItems = [
@@ -37,6 +38,7 @@ const mainNavItems = [
   { id: 11, label: 'Settlements', path: '/superadmin/settlements', icon: Landmark },
   { id: 12, label: 'Coupons & Offers', path: '/superadmin/coupons', icon: Tags },
   { id: 13, label: 'Reviews & Ratings', path: '/superadmin/reviews', icon: Star },
+  { id: 13.5, label: 'Banners', path: '/superadmin/banners', icon: ImageIcon },
   { id: 14, label: 'Support & Complaints', path: '/superadmin/support', icon: MessageSquareWarning },
   { id: 15, label: 'Reports & Analytics', path: '/superadmin/reports', icon: BarChart3 },
 ];

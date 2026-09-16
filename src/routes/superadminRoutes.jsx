@@ -11,6 +11,7 @@ import Categories from '../pages/superadmin/Categories';
 import Subcategories from '../pages/superadmin/Subcategories';
 import MenuVerification from '../pages/superadmin/MenuVerification';
 import ComingSoon from '../pages/website/ComingSoon';
+import Banners from '../pages/superadmin/Banners';
 import {
   UserSquare2, Bike, ShoppingBag, CreditCard, MenuSquare,
   Banknote, Undo2, Landmark, Tags, Star, MessageSquareWarning,
@@ -43,6 +44,7 @@ export const renderSuperAdminRoutes = () => (
       <Route path="payments" element={<ComingSoon title="Payments" icon={Banknote} />} />
       <Route path="refunds" element={<ComingSoon title="Refunds" icon={Undo2} />} />
       <Route path="settlements" element={<ComingSoon title="Settlements" icon={Landmark} />} />
+      <Route path="banners" element={<Banners />} />
       <Route path="coupons" element={<ComingSoon title="Coupons & Offers" icon={Tags} />} />
       <Route path="reviews" element={<ComingSoon title="Reviews & Ratings" icon={Star} />} />
       <Route path="support" element={<ComingSoon title="Support & Complaints" icon={MessageSquareWarning} />} />

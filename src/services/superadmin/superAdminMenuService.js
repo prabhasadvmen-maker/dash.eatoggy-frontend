@@ -64,6 +64,15 @@ export const toggleCategoryStatus = async (id, isActive) => {
   return { status: response.status, ok: response.ok, data };
 };
 
+export const deleteCategory = async (id) => {
+  const response = await fetch(`${API_BASE_URL}/api/super-admin/menu/categories/${id}`, {
+    method: 'DELETE',
+    headers: getSuperAdminHeaders()
+  });
+  const data = await response.json();
+  return { status: response.status, ok: response.ok, data };
+};
+
 // ==========================================
 // SUBCATEGORY API
 // ==========================================
@@ -116,6 +125,15 @@ export const toggleSubcategoryStatus = async (id, isActive) => {
     method: 'PATCH',
     headers: getSuperAdminHeaders(),
     body: JSON.stringify({ isActive })
+  });
+  const data = await response.json();
+  return { status: response.status, ok: response.ok, data };
+};
+
+export const deleteSubcategory = async (id) => {
+  const response = await fetch(`${API_BASE_URL}/api/super-admin/menu/subcategories/${id}`, {
+    method: 'DELETE',
+    headers: getSuperAdminHeaders()
   });
   const data = await response.json();
   return { status: response.status, ok: response.ok, data };

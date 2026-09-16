@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, FileText, Image as ImageIcon, AlertCircle, X } from 'lucide-react';
 import { getPendingMenuItems, approveMenuItem, rejectMenuItem } from '../../services/superadmin/superAdminMenuService';
+import ConfirmModal from '../../components/common/ConfirmModal/ConfirmModal';
 
 const MenuVerification = () => {
   const [items, setItems] = useState([]);
@@ -11,6 +12,12 @@ const MenuVerification = () => {
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Confirm Modal State
+  const [confirmModal, setConfirmModal] = useState({
+    open: false,
+    id: null
+  });
 
   useEffect(() => {
     loadPendingItems();
@@ -32,8 +39,13 @@ const MenuVerification = () => {
     }
   };
 
-  const handleApprove = async (id) => {
-    if (!window.confirm('Are you sure you want to approve this menu item?')) return;
+  const confirmApprove = (id) => {
+    setConfirmModal({ open: true, id });
+  };
+
+  const handleApprove = async () => {
+    const id = confirmModal.id;
+    if (!id) return;
     try {
       setActionLoading(true);
       await approveMenuItem(id);
@@ -43,6 +55,7 @@ const MenuVerification = () => {
       alert(err.message || 'Failed to approve item');
     } finally {
       setActionLoading(false);
+      setConfirmModal({ open: false, id: null });
     }
   };
 
@@ -187,7 +200,7 @@ const MenuVerification = () => {
               <div className="flex gap-4 pt-4 border-t border-gray-100">
                 <button
                   disabled={actionLoading}
-                  onClick={() => handleApprove(selectedItem._id)}
+                  onClick={() => confirmApprove(selectedItem._id)}
                   className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors flex justify-center items-center gap-2 shadow-sm"
                 >
                   <CheckCircle size={20} />
@@ -261,6 +274,19 @@ const MenuVerification = () => {
           </div>
         </div>
       )}
+
+      {/* Confirm Approve Modal */}
+      <ConfirmModal
+        open={confirmModal.open}
+        title="Approve Menu Item"
+        message="Are you sure you want to approve this menu item?"
+        confirmText="Approve"
+        cancelText="Cancel"
+        variant="success"
+        loading={actionLoading}
+        onConfirm={handleApprove}
+        onCancel={() => setConfirmModal({ open: false, id: null })}
+      />
 
     </div>
   );

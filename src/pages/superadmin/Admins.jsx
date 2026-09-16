@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, ShieldAlert, Settings, Eye, Edit, UserPlus, LogIn, ToggleRight, ToggleLeft } from 'lucide-react';
 import API_BASE_URL from '../../services/apiService';
+import ConfirmModal from '../../components/common/ConfirmModal/ConfirmModal';
 
 const Admins = () => {
   const [admins, setAdmins] = useState([]);
@@ -14,6 +15,12 @@ const Admins = () => {
     email: '',
     password: '',
     role: 'Admin'
+  });
+  
+  // Confirm Modal State
+  const [confirmModal, setConfirmModal] = useState({
+    open: false,
+    id: null
   });
 
   const currentUser = JSON.parse(localStorage.getItem('superadmin_user') || '{}');
@@ -109,15 +116,18 @@ const Admins = () => {
     }
   };
 
-  const handleDelete = async (id) => {
+  const confirmDelete = (id) => {
     if (id === currentUser.id) {
       alert("You cannot delete your own account.");
       return;
     }
+    setConfirmModal({ open: true, id });
+    setOpenDropdownId(null);
+  };
 
-    if (!window.confirm('Are you sure you want to delete this admin?')) {
-      return;
-    }
+  const handleDelete = async () => {
+    const id = confirmModal.id;
+    if (!id) return;
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/admins/${id}`, {
@@ -135,6 +145,7 @@ const Admins = () => {
     } catch (err) {
       alert('Network error while deleting admin');
     }
+    setConfirmModal({ open: false, id: null });
   };
 
   const handleToggleStatus = async (id, currentStatus) => {
@@ -307,7 +318,7 @@ const Admins = () => {
                             </button>
                             <div className="h-px bg-gray-100 my-1 mx-2"></div>
                             <button
-                              onClick={() => { setOpenDropdownId(null); handleDelete(admin._id); }}
+                              onClick={() => confirmDelete(admin._id)}
                               disabled={admin._id === currentUser.id}
                               className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                               title={admin._id === currentUser.id ? "Cannot delete yourself" : ""}
@@ -437,6 +448,19 @@ const Admins = () => {
           </div>
         </div>
       )}
+
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        open={confirmModal.open}
+        title="Delete Admin"
+        message="Are you sure you want to delete this admin?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        loading={false}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmModal({ open: false, id: null })}
+      />
     </div>
   );
 };

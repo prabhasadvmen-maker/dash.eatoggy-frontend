@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Settings, CheckCircle2, XCircle, Loader2, Plus, 
-  RefreshCw, X, ToggleLeft, ToggleRight, Edit2, ListTree
+  RefreshCw, X, ToggleLeft, ToggleRight, Edit2, ListTree, Trash2
 } from 'lucide-react';
 import {
   getCategories,
   createCategory,
   updateCategory,
-  toggleCategoryStatus
+  toggleCategoryStatus,
+  deleteCategory
 } from '../../services/superadmin/superAdminMenuService';
+import ConfirmModal from '../../components/common/ConfirmModal/ConfirmModal';
 
 const Categories = () => {
   const [categories, setCategories] = useState([]);
@@ -22,6 +24,12 @@ const Categories = () => {
   const [modalMode, setModalMode] = useState('ADD'); // 'ADD' or 'EDIT'
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  
+  // Confirm Modal State
+  const [confirmModal, setConfirmModal] = useState({
+    open: false,
+    id: null
+  });
 
   // Form State
   const [formData, setFormData] = useState({
@@ -79,6 +87,31 @@ const Categories = () => {
       alert('Network error while updating status');
     }
     setActionLoading(false);
+  };
+
+  const confirmDelete = (id) => {
+    setConfirmModal({ open: true, id });
+    setActiveDropdownId(null);
+  };
+
+  const handleDelete = async () => {
+    const id = confirmModal.id;
+    if (!id) return;
+    setActionLoading(true);
+    try {
+      const res = await deleteCategory(id);
+      if (res.ok) {
+        setCategories(categories.filter(c => c._id !== id));
+        setActiveDropdownId(null);
+      } else {
+        alert(res.data?.message || 'Failed to delete category');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error while deleting category');
+    }
+    setActionLoading(false);
+    setConfirmModal({ open: false, id: null });
   };
 
   const openAddModal = () => {
@@ -293,6 +326,12 @@ const Categories = () => {
                                 </>
                               )}
                             </button>
+                            <button
+                              onClick={() => confirmDelete(category._id)}
+                              className="w-full text-left px-4 py-2 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors cursor-pointer"
+                            >
+                              <Trash2 size={16} className="text-red-500" /> Delete
+                            </button>
                           </div>
                         )}
                       </div>
@@ -383,6 +422,19 @@ const Categories = () => {
           </div>
         </div>
       )}
+
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        open={confirmModal.open}
+        title="Delete Category"
+        message="Are you sure you want to delete this category? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        loading={actionLoading}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmModal({ open: false, id: null })}
+      />
 
     </div>
   );
