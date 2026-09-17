@@ -292,30 +292,32 @@ const MenuManagement = () => {
                     <td className="p-4">
                       <StatusBadge status={item.status} isAvailable={item.availability} />
                       {item.status === 'REJECTED' && item.rejectionReason && (
-                        <p className="text-xs text-red-600 mt-2 max-w-[150px] truncate" title={item.rejectionReason}>
-                          Reason: {item.rejectionReason}
-                        </p>
+                        <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 font-medium max-w-[220px]" data-testid="rejection-reason-box">
+                          <span className="font-bold block text-red-800">Rejection Reason:</span>
+                          {item.rejectionReason}
+                        </div>
                       )}
                     </td>
                     <td className="p-4">
                       <div className="flex items-center justify-end gap-2">
-                        {/* Edit Action - Only allowed for Draft, Rejected, or Approved */}
+                        {/* Edit Action - Allowed for Draft, Rejected, or Approved */}
                         {item.status !== 'PENDING_REVIEW' && (
                           <button
                             onClick={() => openModal(item)}
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors tooltip-wrapper"
-                            title="Edit"
+                            title={item.status === 'REJECTED' ? "Edit & Correct Item" : "Edit"}
                           >
                             <Edit size={18} />
                           </button>
                         )}
 
-                        {/* Submit Action - Only allowed for Draft or Rejected */}
+                        {/* Submit / Resubmit Action - Allowed for Draft or Rejected */}
                         {(item.status === 'DRAFT' || item.status === 'REJECTED') && (
                           <button
                             onClick={() => handleAction('submit', item._id)}
                             className="p-2 text-[#d4af37] hover:bg-[#fbf7ea] rounded-lg transition-colors tooltip-wrapper"
-                            title="Submit for Verification"
+                            title={item.status === 'REJECTED' ? "Resubmit for Review" : "Submit for Verification"}
+                            data-testid="resubmit-btn"
                           >
                             <Send size={18} />
                           </button>
@@ -371,11 +373,12 @@ const MenuManagement = () => {
               
               {/* If Rejected, show reason prominently */}
               {editingItem?.status === 'REJECTED' && (
-                <div className="mb-6 p-4 bg-red-50 rounded-xl border border-red-100 flex items-start gap-3">
+                <div className="mb-6 p-4 bg-red-50 rounded-xl border border-red-200 flex items-start gap-3" data-testid="modal-rejection-reason">
                   <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="text-sm font-bold text-red-800">Verification Rejected</h4>
-                    <p className="text-sm text-red-600 mt-1">{editingItem.rejectionReason}</p>
+                    <h4 className="text-sm font-bold text-red-800">Verification Rejected by SuperAdmin</h4>
+                    <p className="text-sm text-red-700 mt-1 font-semibold">{editingItem.rejectionReason}</p>
+                    <p className="text-xs text-red-500 mt-1.5">Please update the item details below and click "Save & Resubmit" to submit for re-verification.</p>
                   </div>
                 </div>
               )}
@@ -572,7 +575,11 @@ const MenuManagement = () => {
                   onClick={(e) => handleSubmit(e, false)}
                   className="px-6 py-2.5 text-sm font-bold text-white bg-[#d4af37] rounded-xl hover:bg-[#b5952f] transition-colors shadow-md shadow-[#d4af37]/20 flex items-center gap-2"
                 >
-                  {submitting ? 'Saving...' : (editingItem?.status === 'APPROVED' ? 'Submit Updates' : 'Submit for Review')}
+                  {submitting 
+                    ? 'Saving...' 
+                    : (editingItem?.status === 'REJECTED' 
+                      ? 'Save & Resubmit for Review' 
+                      : (editingItem?.status === 'APPROVED' ? 'Submit Updates' : 'Submit for Review'))}
                 </button>
               </div>
             </form>

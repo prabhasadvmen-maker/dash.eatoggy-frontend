@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getDiscoveryRestaurantById, getDiscoveryRestaurantMenu } from '../../services/customer/customerDiscoveryService.js';
+import { useCart } from '../../context/CartContext.jsx';
+import CustomerFoodDetailModal from '../../components/customer/CustomerFoodDetailModal.jsx';
 import {
   UtensilsCrossed,
   MapPin,
@@ -9,13 +11,17 @@ import {
   ArrowLeft,
   Search,
   ShoppingCart,
+  ShoppingBag,
   ChevronRight,
-  Info
+  Info,
+  Plus,
+  Minus
 } from 'lucide-react';
 
 const CustomerRestaurantDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { cart, addToCart, updateQuantity, removeFromCart, actionLoading } = useCart();
 
   const [restaurant, setRestaurant] = useState(null);
   const [menuData, setMenuData] = useState([]);
@@ -25,6 +31,7 @@ const CustomerRestaurantDetail = () => {
 
   const [activeCategory, setActiveCategory] = useState(null);
   const [activeSubcategory, setActiveSubcategory] = useState(null);
+  const [selectedFoodItem, setSelectedFoodItem] = useState(null);
 
   useEffect(() => {
     const fetchRestaurantAndMenu = async () => {
@@ -108,8 +115,10 @@ const CustomerRestaurantDetail = () => {
   const currentCategory = menuData.find(c => c._id === activeCategory);
   // Get active subcategory object
   const currentSubcategory = currentCategory?.subcategories?.find(s => s._id === activeSubcategory);
-  // Get items to display
-  const displayItems = currentSubcategory?.items || [];
+  // Get items to display with robust fallback
+  const displayItems = (currentSubcategory?.items && currentSubcategory.items.length > 0)
+    ? currentSubcategory.items
+    : (currentCategory?.items || currentCategory?.subcategories?.flatMap(s => s.items || []) || []);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col">
@@ -230,7 +239,9 @@ const CustomerRestaurantDetail = () => {
               {displayItems.map(item => (
                 <div
                   key={item._id}
-                  className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex gap-4 hover:border-slate-700 transition-colors group"
+                  onClick={() => setSelectedFoodItem(item)}
+                  className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex gap-4 hover:border-slate-700 transition-colors group cursor-pointer"
+                  data-testid="menu-item-card"
                 >
                   <div className="flex-1 flex flex-col justify-between">
                     <div>
@@ -264,15 +275,62 @@ const CustomerRestaurantDetail = () => {
                       )}
                     </div>
                     
-                    {/* Add to Cart Placeholder - Feature explicitly excluded in vertical slice */}
-                    <div className="mt-4 pt-4 border-t border-slate-800/50 flex justify-end">
-                      <button 
-                        disabled 
-                        className="px-6 py-2 bg-slate-800 text-slate-400 rounded-xl text-xs font-bold border border-slate-700 opacity-50 cursor-not-allowed"
-                        title="Cart functionality coming soon"
-                      >
-                        Add to Cart (Coming Soon)
-                      </button>
+                    {/* Add to Cart Real Controls */}
+                    <div className="mt-4 pt-4 border-t border-slate-800/50 flex justify-end" onClick={(e) => e.stopPropagation()}>
+                      {(() => {
+                        const cartItem = cart?.items?.find(
+                          ci => ci.menuItemId === item._id || ci.menuItemId?._id === item._id
+                        );
+                        const currentQty = cartItem ? cartItem.quantity : 0;
+
+                        if (currentQty > 0) {
+                          return (
+                            <div className="flex items-center bg-[#d4af37] text-slate-950 rounded-xl overflow-hidden shadow-md" data-testid="cart-qty-control">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (currentQty <= 1) {
+                                    removeFromCart(item._id);
+                                  } else {
+                                    updateQuantity(item._id, currentQty - 1);
+                                  }
+                                }}
+                                disabled={actionLoading}
+                                className="px-3 py-1.5 hover:bg-black/10 transition-colors font-bold cursor-pointer disabled:opacity-50"
+                                data-testid="decrease-qty-btn"
+                              >
+                                <Minus size={14} />
+                              </button>
+                              <span className="px-2 font-black text-xs" data-testid="item-qty">{currentQty}</span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateQuantity(item._id, currentQty + 1);
+                                }}
+                                disabled={actionLoading}
+                                className="px-3 py-1.5 hover:bg-black/10 transition-colors font-bold cursor-pointer disabled:opacity-50"
+                                data-testid="increase-qty-btn"
+                              >
+                                <Plus size={14} />
+                              </button>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart(item._id, 1);
+                            }}
+                            disabled={actionLoading}
+                            className="px-6 py-2 bg-[#d4af37] text-slate-950 hover:brightness-110 rounded-xl text-xs font-black shadow-md transition-all cursor-pointer disabled:opacity-50"
+                            data-testid="add-to-cart-btn"
+                          >
+                            ADD TO CART
+                          </button>
+                        );
+                      })()}
                     </div>
                   </div>
                   
@@ -292,6 +350,45 @@ const CustomerRestaurantDetail = () => {
           )}
         </div>
       </main>
+
+      {/* Floating Bottom Cart Bar */}
+      {cart?.items?.length > 0 && (
+        <div className="fixed bottom-4 left-4 right-4 max-w-xl mx-auto z-40" data-testid="floating-cart-bar">
+          <div className="bg-gradient-to-r from-amber-600 to-[#d4af37] text-slate-950 p-4 rounded-2xl shadow-2xl flex items-center justify-between border border-amber-400/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-slate-950/20 rounded-xl flex items-center justify-center text-slate-950 font-black">
+                <ShoppingBag size={20} />
+              </div>
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-wider text-slate-900/80">
+                  {cart.items.reduce((sum, i) => sum + i.quantity, 0)} Items Added
+                </p>
+                <p className="text-lg font-black leading-tight text-slate-950">
+                  ₹{cart.subtotal}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigate('/user/cart')}
+              className="px-5 py-2.5 bg-slate-950 text-[#d4af37] hover:bg-slate-900 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-md"
+              data-testid="view-cart-btn"
+            >
+              <span>View Box</span>
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Food Detail Modal */}
+      {selectedFoodItem && (
+        <CustomerFoodDetailModal
+          item={selectedFoodItem}
+          restaurantName={restaurant?.restaurantName}
+          onClose={() => setSelectedFoodItem(null)}
+        />
+      )}
     </div>
   );
 };

@@ -5,7 +5,10 @@ import UserLogin from '../pages/auth/UserLogin';
 import CustomerDashboard from '../pages/customer/CustomerDashboard';
 import CustomerHome from '../pages/customer/CustomerHome';
 import CustomerRestaurantDetail from '../pages/customer/CustomerRestaurantDetail';
+import CustomerCart from '../pages/customer/CustomerCart';
+import CustomerCheckout from '../pages/customer/CustomerCheckout';
 import { LocationProvider } from '../context/LocationContext';
+import { CartProvider } from '../context/CartContext';
 
 export const renderCustomerRoutes = () => (
   <>
@@ -22,7 +25,9 @@ export const renderCustomerRoutes = () => (
       element={
         <ProtectedRoute roleType="customer">
           <LocationProvider>
-            <CustomerHome />
+            <CartProvider>
+              <CustomerHome />
+            </CartProvider>
           </LocationProvider>
         </ProtectedRoute>
       }
@@ -32,7 +37,9 @@ export const renderCustomerRoutes = () => (
       element={
         <ProtectedRoute roleType="customer">
           <LocationProvider>
-            <CustomerDashboard />
+            <CartProvider>
+              <CustomerDashboard />
+            </CartProvider>
           </LocationProvider>
         </ProtectedRoute>
       }
@@ -42,7 +49,33 @@ export const renderCustomerRoutes = () => (
       element={
         <ProtectedRoute roleType="customer">
           <LocationProvider>
-            <CustomerRestaurantDetail />
+            <CartProvider>
+              <CustomerRestaurantDetail />
+            </CartProvider>
+          </LocationProvider>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/user/cart"
+      element={
+        <ProtectedRoute roleType="customer">
+          <LocationProvider>
+            <CartProvider>
+              <CustomerCart />
+            </CartProvider>
+          </LocationProvider>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/user/checkout"
+      element={
+        <ProtectedRoute roleType="customer">
+          <LocationProvider>
+            <CartProvider>
+              <CustomerCheckout />
+            </CartProvider>
           </LocationProvider>
         </ProtectedRoute>
       }

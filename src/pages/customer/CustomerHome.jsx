@@ -9,17 +9,21 @@ import {
   getGourmetCreationsAPI 
 } from '../../services/customer/customerDiscoveryService.js';
 import { useLocationContext } from '../../context/LocationContext.jsx';
+import { useCart } from '../../context/CartContext.jsx';
 import CustomerBottomNav from '../../components/customer/CustomerBottomNav.jsx';
+import CustomerFoodDetailModal from '../../components/customer/CustomerFoodDetailModal.jsx';
 import {
   MapPin, Search, UtensilsCrossed, Clock, Star, LogOut, ShieldCheck, 
-  ChevronDown, Navigation, Bell, X, CheckCircle, ChevronRight
+  ChevronDown, Navigation, Bell, X, CheckCircle, ChevronRight, ShoppingBag
 } from 'lucide-react';
 
 const CustomerHome = () => {
   const navigate = useNavigate();
   const { location, requestLocation, loadingLocation } = useLocationContext();
+  const { cart, addToCart, actionLoading } = useCart();
   const [user, setUser] = useState(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [selectedFoodItem, setSelectedFoodItem] = useState(null);
 
   // Data states
   const [restaurants, setRestaurants] = useState([]);
@@ -379,7 +383,12 @@ const CustomerHome = () => {
             {filteredGourmet.length > 0 ? (
               <div className="flex overflow-x-auto hide-scrollbar gap-4 pb-4 px-1">
                 {filteredGourmet.map(item => (
-                  <div key={item._id} className="w-[160px] sm:w-[200px] shrink-0 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg" data-testid="gourmet-card">
+                  <div 
+                    key={item._id} 
+                    onClick={() => setSelectedFoodItem(item)}
+                    className="w-[160px] sm:w-[200px] shrink-0 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg cursor-pointer hover:border-slate-700 transition-all" 
+                    data-testid="gourmet-card"
+                  >
                     <div className="h-28 sm:h-32 bg-slate-800 relative">
                       {item.image ? (
                         <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
@@ -405,7 +414,12 @@ const CustomerHome = () => {
                       <div className="mt-auto flex items-center justify-between">
                         <span className="text-sm font-black text-white">₹{item.price}</span>
                         <button 
-                          className="bg-[#d4af37] text-slate-950 px-2.5 py-1.5 rounded-lg text-[10px] font-extrabold shadow hover:brightness-110 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addToCart(item._id, 1);
+                          }}
+                          disabled={actionLoading}
+                          className="bg-[#d4af37] text-slate-950 px-2.5 py-1.5 rounded-lg text-[10px] font-extrabold shadow hover:brightness-110 cursor-pointer disabled:opacity-50"
                           data-testid="add-to-box"
                         >
                           ADD
@@ -442,6 +456,7 @@ const CustomerHome = () => {
                   key={rest._id}
                   onClick={() => navigate(`/user/restaurant/${rest._id}`)}
                   className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden hover:border-[#d4af37]/40 transition-all cursor-pointer group shadow-lg flex flex-col"
+                  data-testid="restaurant-card"
                 >
                   <div className="h-44 sm:h-48 relative overflow-hidden bg-slate-800">
                     {rest.documents?.restaurantImage ? (
@@ -486,6 +501,45 @@ const CustomerHome = () => {
         </div>
         
       </main>
+
+      {/* Floating Bottom Cart Bar */}
+      {cart?.items?.length > 0 && (
+        <div className="fixed bottom-16 sm:bottom-6 left-4 right-4 max-w-md mx-auto z-40" data-testid="home-floating-cart">
+          <div className="bg-gradient-to-r from-amber-600 to-[#d4af37] text-slate-950 p-3.5 rounded-2xl shadow-2xl flex items-center justify-between border border-amber-400/50">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 bg-slate-950/20 rounded-xl flex items-center justify-center text-slate-950 font-black">
+                <ShoppingBag size={18} />
+              </div>
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-900/80">
+                  {cart.items.reduce((sum, i) => sum + i.quantity, 0)} Items In Box
+                </p>
+                <p className="text-base font-black leading-tight text-slate-950">
+                  ₹{cart.subtotal}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigate('/user/cart')}
+              className="px-4 py-2 bg-slate-950 text-[#d4af37] hover:bg-slate-900 font-bold rounded-xl text-xs flex items-center gap-1 transition-colors cursor-pointer shadow-md"
+              data-testid="home-view-cart-btn"
+            >
+              <span>View Box</span>
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Food Detail Modal */}
+      {selectedFoodItem && (
+        <CustomerFoodDetailModal
+          item={selectedFoodItem}
+          restaurantName={selectedFoodItem.restaurantId?.restaurantName}
+          onClose={() => setSelectedFoodItem(null)}
+        />
+      )}
 
       <CustomerBottomNav />
     </div>
