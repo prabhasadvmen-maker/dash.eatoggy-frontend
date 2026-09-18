@@ -7,6 +7,9 @@ import CustomerHome from '../pages/customer/CustomerHome';
 import CustomerRestaurantDetail from '../pages/customer/CustomerRestaurantDetail';
 import CustomerCart from '../pages/customer/CustomerCart';
 import CustomerCheckout from '../pages/customer/CustomerCheckout';
+import CustomerOrderConfirmation from '../pages/customer/CustomerOrderConfirmation';
+import CustomerOrders from '../pages/customer/CustomerOrders';
+import CustomerOrderDetail from '../pages/customer/CustomerOrderDetail';
 import { LocationProvider } from '../context/LocationContext';
 import { CartProvider } from '../context/CartContext';
 
@@ -75,6 +78,42 @@ export const renderCustomerRoutes = () => (
           <LocationProvider>
             <CartProvider>
               <CustomerCheckout />
+            </CartProvider>
+          </LocationProvider>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/user/order-confirmation/:id"
+      element={
+        <ProtectedRoute roleType="customer">
+          <LocationProvider>
+            <CartProvider>
+              <CustomerOrderConfirmation />
+            </CartProvider>
+          </LocationProvider>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/user/orders"
+      element={
+        <ProtectedRoute roleType="customer">
+          <LocationProvider>
+            <CartProvider>
+              <CustomerOrders />
+            </CartProvider>
+          </LocationProvider>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/user/orders/:id"
+      element={
+        <ProtectedRoute roleType="customer">
+          <LocationProvider>
+            <CartProvider>
+              <CustomerOrderDetail />
             </CartProvider>
           </LocationProvider>
         </ProtectedRoute>

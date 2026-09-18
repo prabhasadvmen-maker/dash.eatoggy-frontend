@@ -6,6 +6,7 @@ import RestaurantLogin from '../pages/auth/RestaurantLogin';
 import RestaurantOnboardingWizard from '../pages/restaurant/RestaurantOnboardingWizard';
 import RestaurantOverview from '../pages/restaurant/RestaurantOverview';
 import MenuManagement from '../pages/restaurant/MenuManagement';
+import RestaurantOrders from '../pages/restaurant/RestaurantOrders';
 import ComingSoon from '../pages/website/ComingSoon';
 import {
   ShoppingBag, UtensilsCrossed, CreditCard, MenuSquare, Bike,
@@ -29,7 +30,7 @@ export const renderRestaurantRoutes = () => (
       }
     >
       <Route index element={<RestaurantOverview />} />
-      <Route path="orders" element={<ComingSoon title="Orders" icon={ShoppingBag} />} />
+      <Route path="orders" element={<RestaurantOrders />} />
       <Route path="kitchen" element={<ComingSoon title="Kitchen / Production" icon={UtensilsCrossed} />} />
       <Route path="subscriptions" element={<ComingSoon title="Subscriptions" icon={CreditCard} />} />
       <Route path="menu" element={<MenuManagement />} />
