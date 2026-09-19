@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Compass, ShoppingBag, ClipboardList, PackageOpen, User } from 'lucide-react';
+import { Home, Compass, ShoppingBag, ClipboardList, Calendar, User } from 'lucide-react';
 import { useCart } from '../../context/CartContext.jsx';
 
 const CustomerBottomNav = () => {
@@ -10,8 +10,8 @@ const CustomerBottomNav = () => {
 
   const navItems = [
     { name: 'Home', path: '/user/home', icon: Home },
-    { name: 'Menu', path: '/user/menu', icon: Compass },
-    { name: 'Box', path: '/user/cart', icon: ShoppingBag, badge: itemCount },
+    { name: 'Tiffin', path: '/user/tiffin-plans', icon: Calendar },
+    { name: 'Cart', path: '/user/cart', icon: ShoppingBag, badge: itemCount },
     { name: 'Orders', path: '/user/orders', icon: ClipboardList },
     { name: 'Profile', path: '/user/dashboard', icon: User }
   ];

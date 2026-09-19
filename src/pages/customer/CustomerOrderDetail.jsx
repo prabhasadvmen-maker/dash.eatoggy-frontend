@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getCustomerOrderByIdAPI } from '../../services/customer/orderService.js';
 import { getCustomerOrderTracking } from '../../services/delivery/deliveryOrderService.js';
+import { subscribeToOrderTracking, unsubscribeFromOrderTracking } from '../../services/socketService.js';
 import CustomerBottomNav from '../../components/customer/CustomerBottomNav.jsx';
 import {
   ArrowLeft,
@@ -31,12 +32,44 @@ const CustomerOrderDetail = () => {
     fetchOrderAndTracking();
   }, [id]);
 
+  // Real-Time Socket.IO Subscription (Replaces REST Polling)
   useEffect(() => {
-    if (order && !['DELIVERED', 'REJECTED', 'CANCELLED'].includes(order.orderStatus)) {
-      const interval = setInterval(fetchTrackingData, 4000);
-      return () => clearInterval(interval);
+    if (!id || !order) return;
+
+    if (['DELIVERED', 'REJECTED', 'CANCELLED'].includes(order.orderStatus)) {
+      unsubscribeFromOrderTracking(id);
+      return;
     }
-  }, [order]);
+
+    subscribeToOrderTracking(id, {
+      onLocationUpdate: (data) => {
+        setTracking((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            currentLocation: {
+              latitude: data.latitude,
+              longitude: data.longitude,
+              updatedAt: data.updatedAt || new Date().toISOString()
+            }
+          };
+        });
+      },
+      onStatusUpdate: (data) => {
+        if (data.deliveryStatus) {
+          setTracking((prev) => (prev ? { ...prev, deliveryStatus: data.deliveryStatus } : prev));
+        }
+        if (data.orderStatus) {
+          setOrder((prev) => (prev ? { ...prev, orderStatus: data.orderStatus } : prev));
+        }
+        fetchTrackingData();
+      }
+    });
+
+    return () => {
+      unsubscribeFromOrderTracking(id);
+    };
+  }, [id, order?.orderStatus]);
 
   const fetchOrderAndTracking = async () => {
     try {
@@ -66,6 +99,18 @@ const CustomerOrderDetail = () => {
       console.error('Tracking info unavailable:', err);
     }
   };
+
+  // Stale GPS Warning Computation (> 5 Minutes Old)
+  const isStaleLocation = useMemo(() => {
+    if (!tracking?.currentLocation?.updatedAt) return false;
+    if (!order || ['DELIVERED', 'REJECTED', 'CANCELLED'].includes(order.orderStatus)) return false;
+
+    const lastUpdatedMs = new Date(tracking.currentLocation.updatedAt).getTime();
+    if (isNaN(lastUpdatedMs)) return false;
+
+    const nowMs = Date.now();
+    return nowMs - lastUpdatedMs > 5 * 60 * 1000;
+  }, [tracking?.currentLocation?.updatedAt, order?.orderStatus]);
 
   if (loading) {
     return (
@@ -127,6 +172,23 @@ const CustomerOrderDetail = () => {
           </div>
         )}
 
+        {/* STALE GPS WARNING BANNER (> 5 MIN DELAY) */}
+        {isStaleLocation && (
+          <div
+            className="bg-amber-500/15 border-2 border-amber-500/40 rounded-3xl p-4 text-xs text-amber-300 flex items-center gap-3 shadow-lg animate-pulse"
+            id="stale-gps-warning"
+            data-testid="stale-gps-warning"
+          >
+            <AlertCircle size={22} className="text-amber-400 shrink-0" />
+            <div>
+              <p className="font-bold text-white text-sm">GPS Signal May Be Delayed</p>
+              <p className="text-amber-200/90 text-[11px] mt-0.5">
+                Rider location was updated over 5 minutes ago. Real-time position will refresh automatically upon next GPS signal broadcast.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* DELIVERY OTP DISPLAY CARD */}
         {tracking?.deliveryOtp && orderStatus !== 'DELIVERED' && orderStatus !== 'REJECTED' && orderStatus !== 'CANCELLED' && (
           <div className="bg-gradient-to-r from-amber-500/20 via-amber-400/10 to-transparent border-2 border-[#d4af37] rounded-3xl p-5 space-y-2 shadow-2xl" id="delivery-otp-card">
@@ -175,7 +237,7 @@ const CustomerOrderDetail = () => {
               <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2 text-slate-300">
                   <Navigation size={14} className="text-[#d4af37] animate-pulse" />
-                  <span>Live GPS Position</span>
+                  <span>Live Real-Time GPS Position</span>
                 </div>
                 <span className="text-[11px] font-mono text-slate-400" id="rider-gps-coordinates">
                   {tracking.currentLocation.latitude?.toFixed(4)}, {tracking.currentLocation.longitude?.toFixed(4)}
@@ -324,3 +386,4 @@ const CustomerOrderDetail = () => {
 };
 
 export default CustomerOrderDetail;
+

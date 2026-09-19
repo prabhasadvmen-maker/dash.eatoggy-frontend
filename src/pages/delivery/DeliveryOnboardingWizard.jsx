@@ -93,23 +93,23 @@ const DeliveryOnboardingWizard = () => {
       const p = meRes.data.data.partner || meRes.data.data;
       setPartner(p);
 
-      // Pre-fill form fields
-      setProfileData({
-        fullName: p.fullName || '',
-        email: p.email || '',
-        vehicleType: p.vehicleType || 'Bike'
-      });
+      // Pre-fill form fields preserving any existing user input
+      setProfileData((prev) => ({
+        fullName: prev.fullName || p.fullName || '',
+        email: prev.email || p.email || '',
+        vehicleType: prev.vehicleType !== 'Bike' ? prev.vehicleType : (p.vehicleType || 'Bike')
+      }));
 
       if (p.selectedAddress || p.city) {
-        setLocationData({
-          formattedAddress: p.selectedAddress || p.city || '',
-          selectedAddress: p.selectedAddress || p.city || '',
-          city: p.city || '',
-          state: '',
-          pincode: '',
-          latitude: p.latitude || null,
-          longitude: p.longitude || null
-        });
+        setLocationData((prev) => ({
+          formattedAddress: prev.formattedAddress || p.selectedAddress || p.city || '',
+          selectedAddress: prev.selectedAddress || p.selectedAddress || p.city || '',
+          city: prev.city || p.city || '',
+          state: prev.state || '',
+          pincode: prev.pincode || '',
+          latitude: prev.latitude ?? p.latitude ?? null,
+          longitude: prev.longitude ?? p.longitude ?? null
+        }));
       }
 
       // Route if approved
@@ -149,22 +149,24 @@ const DeliveryOnboardingWizard = () => {
 
   // --- Step 0: Location Selector Handler ---
   const handleLocationSelect = (locObj) => {
-    if (typeof locObj === 'object') {
+    if (typeof locObj === 'object' && locObj !== null) {
+      const addr = locObj.selectedAddress || locObj.formattedAddress || locObj.city || '';
       setLocationData({
-        formattedAddress: locObj.formattedAddress || locObj.city || '',
-        selectedAddress: locObj.formattedAddress || locObj.city || '',
-        city: locObj.city || 'Hub City',
+        formattedAddress: addr,
+        selectedAddress: addr,
+        city: locObj.city || addr || 'Hub City',
         state: locObj.state || '',
         pincode: locObj.pincode || '',
         latitude: locObj.latitude || null,
         longitude: locObj.longitude || null
       });
     } else {
+      const addr = String(locObj || '');
       setLocationData((prev) => ({
         ...prev,
-        formattedAddress: locObj,
-        selectedAddress: locObj,
-        city: locObj
+        formattedAddress: addr,
+        selectedAddress: addr,
+        city: addr
       }));
     }
   };

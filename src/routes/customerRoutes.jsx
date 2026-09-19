@@ -10,6 +10,10 @@ import CustomerCheckout from '../pages/customer/CustomerCheckout';
 import CustomerOrderConfirmation from '../pages/customer/CustomerOrderConfirmation';
 import CustomerOrders from '../pages/customer/CustomerOrders';
 import CustomerOrderDetail from '../pages/customer/CustomerOrderDetail';
+import TiffinPlansDiscovery from '../pages/customer/TiffinPlansDiscovery';
+import TiffinPlanDetailCheckout from '../pages/customer/TiffinPlanDetailCheckout';
+import CustomerSubscriptionsList from '../pages/customer/CustomerSubscriptionsList';
+import CustomerSubscriptionDetail from '../pages/customer/CustomerSubscriptionDetail';
 import { LocationProvider } from '../context/LocationContext';
 import { CartProvider } from '../context/CartContext';
 
@@ -114,6 +118,54 @@ export const renderCustomerRoutes = () => (
           <LocationProvider>
             <CartProvider>
               <CustomerOrderDetail />
+            </CartProvider>
+          </LocationProvider>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/user/tiffin-plans"
+      element={
+        <ProtectedRoute roleType="customer">
+          <LocationProvider>
+            <CartProvider>
+              <TiffinPlansDiscovery />
+            </CartProvider>
+          </LocationProvider>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/user/tiffin-plans/:id"
+      element={
+        <ProtectedRoute roleType="customer">
+          <LocationProvider>
+            <CartProvider>
+              <TiffinPlanDetailCheckout />
+            </CartProvider>
+          </LocationProvider>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/user/subscriptions"
+      element={
+        <ProtectedRoute roleType="customer">
+          <LocationProvider>
+            <CartProvider>
+              <CustomerSubscriptionsList />
+            </CartProvider>
+          </LocationProvider>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/user/subscriptions/:id"
+      element={
+        <ProtectedRoute roleType="customer">
+          <LocationProvider>
+            <CartProvider>
+              <CustomerSubscriptionDetail />
             </CartProvider>
           </LocationProvider>
         </ProtectedRoute>
