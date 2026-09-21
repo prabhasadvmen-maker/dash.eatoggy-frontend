@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getSubscriptionDetailAPI, skipOccurrenceAPI, pauseSubscriptionAPI, resumeSubscriptionAPI, cancelSubscriptionAPI } from '../../services/subscription/subscriptionService.js';
+import { subscribeToSubscriptionUpdates, unsubscribeFromSubscriptionUpdates } from '../../services/socketService.js';
 import CustomerBottomNav from '../../components/customer/CustomerBottomNav.jsx';
 import {
   ArrowLeft,
@@ -30,6 +31,26 @@ const CustomerSubscriptionDetail = () => {
 
   useEffect(() => {
     fetchDetail();
+  }, [subscriptionId]);
+
+  // Real-Time Socket.IO Subscription (Refetches timeline when occurrence is generated or status changes)
+  useEffect(() => {
+    if (!subscriptionId) return;
+
+    subscribeToSubscriptionUpdates(subscriptionId, {
+      onOccurrenceCreated: (data) => {
+        console.log('[CustomerSubscriptionDetail] Socket event: subscription:occurrence:created', data);
+        fetchDetail();
+      },
+      onSubscriptionUpdated: (data) => {
+        console.log('[CustomerSubscriptionDetail] Socket event: subscription:updated', data);
+        fetchDetail();
+      }
+    });
+
+    return () => {
+      unsubscribeFromSubscriptionUpdates(subscriptionId);
+    };
   }, [subscriptionId]);
 
   const fetchDetail = async () => {

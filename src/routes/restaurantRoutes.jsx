@@ -9,6 +9,9 @@ import MenuManagement from '../pages/restaurant/MenuManagement';
 import RestaurantOrders from '../pages/restaurant/RestaurantOrders';
 import KitchenKDS from '../pages/restaurant/KitchenKDS';
 import RestaurantTiffinPlans from '../pages/restaurant/RestaurantTiffinPlans';
+import RestaurantEarnings from '../pages/restaurant/RestaurantEarnings';
+import RestaurantReviews from '../pages/restaurant/RestaurantReviews';
+import RestaurantSupport from '../pages/restaurant/RestaurantSupport';
 import ComingSoon from '../pages/website/ComingSoon';
 import {
   ShoppingBag, UtensilsCrossed, CreditCard, MenuSquare, Bike,
@@ -37,10 +40,10 @@ export const renderRestaurantRoutes = () => (
       <Route path="subscriptions" element={<RestaurantTiffinPlans />} />
       <Route path="menu" element={<MenuManagement />} />
       <Route path="delivery" element={<ComingSoon title="Delivery & Pickup" icon={Bike} />} />
-      <Route path="earnings" element={<ComingSoon title="Earnings / Payouts" icon={IndianRupee} />} />
-      <Route path="reviews" element={<ComingSoon title="Reviews & Ratings" icon={Star} />} />
+      <Route path="earnings" element={<RestaurantEarnings />} />
+      <Route path="reviews" element={<RestaurantReviews />} />
       <Route path="staff" element={<ComingSoon title="Staff Management" icon={Users} />} />
-      <Route path="support" element={<ComingSoon title="Support" icon={MessageSquare} />} />
+      <Route path="support" element={<RestaurantSupport />} />
       
       {/* Settings */}
       <Route path="profile-details" element={<ComingSoon title="Restaurant Profile" icon={Store} />} />

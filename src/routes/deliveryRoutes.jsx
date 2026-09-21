@@ -5,6 +5,8 @@ import DeliveryLogin from '../pages/delivery/DeliveryLogin';
 import DeliveryRegistration from '../pages/delivery/DeliveryRegistration';
 import DeliveryOnboardingWizard from '../pages/delivery/DeliveryOnboardingWizard';
 import DeliveryHome from '../pages/delivery/DeliveryHome';
+import DeliveryEarnings from '../pages/delivery/DeliveryEarnings';
+import DeliverySupport from '../pages/delivery/DeliverySupport';
 
 export const renderDeliveryRoutes = () => (
   <>
@@ -25,6 +27,24 @@ export const renderDeliveryRoutes = () => (
       element={
         <ProtectedRoute roleType="delivery">
           <DeliveryHome />
+        </ProtectedRoute>
+      }
+    />
+
+    <Route
+      path="/delivery/earnings"
+      element={
+        <ProtectedRoute roleType="delivery">
+          <DeliveryEarnings />
+        </ProtectedRoute>
+      }
+    />
+
+    <Route
+      path="/delivery/support"
+      element={
+        <ProtectedRoute roleType="delivery">
+          <DeliverySupport />
         </ProtectedRoute>
       }
     />

@@ -16,8 +16,10 @@ import {
   ShieldCheck,
   Bike,
   Smartphone,
-  Navigation
+  Navigation,
+  Star
 } from 'lucide-react';
+import API_BASE_URL from '../../services/apiService';
 
 const CustomerOrderDetail = () => {
   const { id } = useParams();
@@ -27,6 +29,51 @@ const CustomerOrderDetail = () => {
   const [tracking, setTracking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Review Modal State
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [foodRating, setFoodRating] = useState(5);
+  const [deliveryRating, setDeliveryRating] = useState(5);
+  const [comment, setComment] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [hasReviewed, setHasReviewed] = useState(false);
+  const [reviewData, setReviewData] = useState(null);
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    if (!id) return;
+    setSubmittingReview(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/customers/orders/${id}/review`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          rating,
+          foodRating,
+          deliveryRating,
+          comment,
+          images: imageUrl ? [imageUrl] : []
+        })
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setHasReviewed(true);
+        setReviewData(data.data);
+        setReviewModalOpen(false);
+      } else {
+        alert(data.message || 'Failed to submit review');
+      }
+    } catch (err) {
+      alert('Network error while submitting review');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   useEffect(() => {
     fetchOrderAndTracking();
@@ -353,6 +400,36 @@ const CustomerOrderDetail = () => {
           </div>
         </div>
 
+        {/* Customer Review Section for DELIVERED Orders */}
+        {orderStatus === 'DELIVERED' && (
+          <div className="bg-gradient-to-r from-amber-500/10 to-amber-600/20 border border-[#d4af37]/40 rounded-3xl p-5 shadow-xl space-y-3" data-testid="order-review-section">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Star className="text-[#d4af37]" fill="#d4af37" size={20} />
+                <h3 className="font-bold text-white text-sm">Customer Rating & Review</h3>
+              </div>
+              {hasReviewed ? (
+                <span className="bg-emerald-500/20 text-emerald-400 text-xs px-3 py-1 rounded-full font-bold border border-emerald-500/30">
+                  Reviewed ★ {reviewData?.rating || 5}/5
+                </span>
+              ) : (
+                <button
+                  onClick={() => setReviewModalOpen(true)}
+                  className="bg-[#d4af37] hover:bg-[#b8952b] text-slate-950 font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-md"
+                  data-testid="rate-order-btn"
+                >
+                  Rate & Review Order
+                </button>
+              )}
+            </div>
+            {hasReviewed && reviewData?.comment && (
+              <p className="text-xs text-slate-300 italic bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                "{reviewData.comment}"
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Status History Timeline */}
         {statusHistory && statusHistory.length > 0 && (
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-3 shadow-xl" data-testid="status-timeline">
@@ -379,6 +456,109 @@ const CustomerOrderDetail = () => {
           </div>
         )}
       </main>
+
+      {/* Review Modal */}
+      {reviewModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl w-full max-w-md p-6 space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Star className="text-[#d4af37]" fill="#d4af37" size={20} /> Rate Your Order
+              </h3>
+              <button onClick={() => setReviewModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+
+            <form onSubmit={handleSubmitReview} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Overall Rating (1–5 Stars)</label>
+                <div className="flex gap-2 text-2xl text-[#d4af37]">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setRating(s)}
+                      className="focus:outline-none"
+                    >
+                      ★
+                    </button>
+                  ))}
+                  <span className="text-xs font-bold text-slate-300 ml-2 self-center">{rating}/5 Stars</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Food Quality Rating</label>
+                <select
+                  value={foodRating}
+                  onChange={(e) => setFoodRating(Number(e.target.value))}
+                  className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs outline-none focus:border-[#d4af37]"
+                >
+                  <option value={5}>5 Stars - Excellent Food</option>
+                  <option value={4}>4 Stars - Good Taste</option>
+                  <option value={3}>3 Stars - Average</option>
+                  <option value={2}>2 Stars - Needs Improvement</option>
+                  <option value={1}>1 Star - Poor Quality</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Delivery Speed & Service</label>
+                <select
+                  value={deliveryRating}
+                  onChange={(e) => setDeliveryRating(Number(e.target.value))}
+                  className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs outline-none focus:border-[#d4af37]"
+                >
+                  <option value={5}>5 Stars - Fast Delivery</option>
+                  <option value={4}>4 Stars - On Time</option>
+                  <option value={3}>3 Stars - Moderate Speed</option>
+                  <option value={2}>2 Stars - Delayed</option>
+                  <option value={1}>1 Star - Very Slow</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Written Comment</label>
+                <textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Share details about food taste, packaging, or delivery experience..."
+                  rows={3}
+                  className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-3 text-xs outline-none focus:border-[#d4af37] resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Photo URL (Optional)</label>
+                <input
+                  type="url"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://images.unsplash.com/photo-1546069901-ba9599a7e63c"
+                  className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs outline-none focus:border-[#d4af37]"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setReviewModalOpen(false)}
+                  className="flex-1 py-2.5 border border-slate-800 text-slate-400 font-bold text-xs rounded-xl hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingReview}
+                  className="flex-1 py-2.5 bg-[#d4af37] text-slate-950 font-bold text-xs rounded-xl hover:bg-[#b8952b] disabled:opacity-50"
+                  data-testid="submit-review-btn"
+                >
+                  {submittingReview ? 'Submitting...' : 'Submit Review'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <CustomerBottomNav />
     </div>

@@ -115,7 +115,7 @@ const Restaurants = () => {
     try {
       const res = await getOnboardingFeeSetting();
       if (res.ok && res.data?.data) {
-        setFeeAmount(res.data.data.amount || 999);
+        setFeeAmount(res.data.data.fee?.amount ?? res.data.data.amount ?? 999);
       }
     } catch (err) {
       console.error('Failed to load fee setting');

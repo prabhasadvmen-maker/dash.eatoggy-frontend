@@ -4,10 +4,7 @@ let socket = null;
 let currentJoinedOrderId = null;
 
 const getSOCKET_URL = () => {
-  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-    return 'http://localhost:5000';
-  }
-  return window.location.origin;
+  return import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? 'https://api.norozz.in' : 'http://localhost:5000');
 };
 
 /**
@@ -158,6 +155,55 @@ export const subscribeToKitchenOrders = (restaurantId, { onKitchenUpdate, onNewO
   }
 
   return activeSocket;
+};
+
+/**
+ * Join a subscription room and subscribe to occurrence/update events
+ */
+export const subscribeToSubscriptionUpdates = (subscriptionId, { onOccurrenceCreated, onSubscriptionUpdated, onError } = {}) => {
+  const activeSocket = initSocket();
+  if (!activeSocket) return null;
+
+  activeSocket.off('subscription:occurrence:created');
+  activeSocket.off('subscription:updated');
+  activeSocket.off('error');
+
+  activeSocket.emit('join:subscription', { subscriptionId });
+
+  if (onOccurrenceCreated) {
+    activeSocket.on('subscription:occurrence:created', (data) => {
+      console.log('[SocketService] Received subscription:occurrence:created', data);
+      onOccurrenceCreated(data);
+    });
+  }
+
+  if (onSubscriptionUpdated) {
+    activeSocket.on('subscription:updated', (data) => {
+      console.log('[SocketService] Received subscription:updated', data);
+      onSubscriptionUpdated(data);
+    });
+  }
+
+  if (onError) {
+    activeSocket.on('error', (err) => {
+      console.error('[SocketService] Subscription room error:', err);
+      onError(err);
+    });
+  }
+
+  return activeSocket;
+};
+
+/**
+ * Leave subscription room
+ */
+export const unsubscribeFromSubscriptionUpdates = (subscriptionId) => {
+  if (socket && socket.connected) {
+    socket.emit('leave:subscription', { subscriptionId });
+    socket.off('subscription:occurrence:created');
+    socket.off('subscription:updated');
+    socket.off('error');
+  }
 };
 
 /**

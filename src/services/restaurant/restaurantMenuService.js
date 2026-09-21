@@ -1,6 +1,7 @@
 import { getRestaurantHeaders } from './restaurantAuthService';
+import API_BASE_URL from '../apiService';
 
-const API_URL = 'http://localhost:5000/api/restaurants/menu';
+const API_URL = `${API_BASE_URL}/api/restaurants/menu`;
 
 export const getMenuItems = async () => {
   const headers = await getRestaurantHeaders();

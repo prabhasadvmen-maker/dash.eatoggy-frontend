@@ -14,6 +14,7 @@ import TiffinPlansDiscovery from '../pages/customer/TiffinPlansDiscovery';
 import TiffinPlanDetailCheckout from '../pages/customer/TiffinPlanDetailCheckout';
 import CustomerSubscriptionsList from '../pages/customer/CustomerSubscriptionsList';
 import CustomerSubscriptionDetail from '../pages/customer/CustomerSubscriptionDetail';
+import CustomerSupport from '../pages/customer/CustomerSupport';
 import { LocationProvider } from '../context/LocationContext';
 import { CartProvider } from '../context/CartContext';
 
@@ -166,6 +167,18 @@ export const renderCustomerRoutes = () => (
           <LocationProvider>
             <CartProvider>
               <CustomerSubscriptionDetail />
+            </CartProvider>
+          </LocationProvider>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/user/support"
+      element={
+        <ProtectedRoute roleType="customer">
+          <LocationProvider>
+            <CartProvider>
+              <CustomerSupport />
             </CartProvider>
           </LocationProvider>
         </ProtectedRoute>
