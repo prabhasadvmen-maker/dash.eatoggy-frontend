@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getCustomerOrderByIdAPI } from '../../services/customer/orderService.js';
 import { getCustomerOrderTracking } from '../../services/delivery/deliveryOrderService.js';
 import { subscribeToOrderTracking, unsubscribeFromOrderTracking } from '../../services/socketService.js';
-import CustomerBottomNav from '../../components/customer/CustomerBottomNav.jsx';
+
 import {
   ArrowLeft,
   Store,
@@ -161,7 +161,7 @@ const CustomerOrderDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 text-slate-100" data-testid="customer-order-detail-page">
+      <div className="space-y-6 max-w-7xl mx-auto pb-20">
         <div className="w-12 h-12 border-4 border-[#d4af37] border-t-transparent rounded-full animate-spin"></div>
         <p className="text-[#d4af37] mt-4 font-bold text-sm">Loading order details...</p>
       </div>
@@ -170,10 +170,10 @@ const CustomerOrderDetail = () => {
 
   if (error || !order) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 text-slate-100 text-center" data-testid="customer-order-detail-page">
+      <div className="space-y-6 max-w-7xl mx-auto pb-20">
         <AlertCircle size={48} className="text-red-500 mb-4 mx-auto" />
-        <h2 className="text-xl font-bold mb-2 text-white">Order Details Error</h2>
-        <p className="text-slate-400 text-xs mb-6 max-w-sm">{error || 'Unable to load order details'}</p>
+        <h2 className="text-xl font-bold mb-2 text-gray-900">Order Details Error</h2>
+        <p className="text-gray-500 text-xs mb-6 max-w-sm">{error || 'Unable to load order details'}</p>
         <button
           onClick={() => navigate('/user/orders')}
           className="px-6 py-2.5 bg-[#d4af37] text-slate-950 font-bold rounded-xl text-xs uppercase"
@@ -187,35 +187,34 @@ const CustomerOrderDetail = () => {
   const { orderNumber, restaurantId, items, deliveryAddress, pricing, orderStatus, statusHistory, rejectionReason } = order;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col pb-20" data-testid="customer-order-detail-page">
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-slate-900 border-b border-slate-800 px-4 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/user/orders')}
-            className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center hover:bg-slate-700 transition-colors cursor-pointer"
-            data-testid="order-detail-back-btn"
-          >
-            <ArrowLeft size={18} className="text-white" />
-          </button>
-          <div>
-            <h1 className="text-lg font-black text-white">Order Summary</h1>
-            <p className="text-xs text-slate-400">Order ID: <span className="text-[#d4af37] font-mono font-bold" data-testid="order-number">{orderNumber}</span></p>
-          </div>
-        </div>
-
-        <span className="px-3 py-1 bg-[#d4af37]/10 text-[#d4af37] border border-[#d4af37]/30 text-xs font-bold rounded-xl uppercase" data-testid="order-status-badge">
-          {orderStatus}
-        </span>
-      </header>
-
+    <div className="space-y-6 max-w-7xl mx-auto pb-20">
       {/* Main Content */}
       <main className="flex-1 max-w-3xl mx-auto w-full p-4 space-y-4">
+        
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/user/orders')}
+              className="w-10 h-10 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
+              data-testid="order-detail-back-btn"
+            >
+              <ArrowLeft size={18} className="text-gray-900" />
+            </button>
+            <div>
+              <h1 className="text-lg font-black text-gray-900">Order Summary</h1>
+              <p className="text-xs text-gray-500">Order ID: <span className="text-[#d4af37] font-mono font-bold" data-testid="order-number">{orderNumber}</span></p>
+            </div>
+          </div>
+
+          <span className="px-3 py-1 bg-[#d4af37]/10 text-[#d4af37] border border-[#d4af37]/30 text-xs font-bold rounded-xl uppercase" data-testid="order-status-badge">
+            {orderStatus}
+          </span>
+        </div>
         {/* Rejection Notice if applicable */}
         {orderStatus === 'REJECTED' && rejectionReason && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-3xl p-4 space-y-1 text-xs text-red-400">
             <p className="font-bold flex items-center gap-1.5"><AlertCircle size={16} /> Order Rejected by Restaurant</p>
-            <p className="text-slate-300">Reason: {rejectionReason}</p>
+            <p className="text-gray-700">Reason: {rejectionReason}</p>
           </div>
         )}
 
@@ -228,7 +227,7 @@ const CustomerOrderDetail = () => {
           >
             <AlertCircle size={22} className="text-amber-400 shrink-0" />
             <div>
-              <p className="font-bold text-white text-sm">GPS Signal May Be Delayed</p>
+              <p className="font-bold text-gray-900 text-sm">GPS Signal May Be Delayed</p>
               <p className="text-amber-200/90 text-[11px] mt-0.5">
                 Rider location was updated over 5 minutes ago. Real-time position will refresh automatically upon next GPS signal broadcast.
               </p>
@@ -248,8 +247,8 @@ const CustomerOrderDetail = () => {
             </div>
             <div className="flex items-center justify-between pt-1">
               <div>
-                <p className="text-3xl font-mono font-black text-white tracking-widest" id="delivery-otp-value">{tracking.deliveryOtp}</p>
-                <p className="text-[11px] text-slate-300 mt-1">Share this 4-digit code with your delivery partner upon arrival.</p>
+                <p className="text-3xl font-mono font-black text-gray-900 tracking-widest" id="delivery-otp-value">{tracking.deliveryOtp}</p>
+                <p className="text-[11px] text-gray-700 mt-1">Share this 4-digit code with your delivery partner upon arrival.</p>
               </div>
             </div>
           </div>
@@ -257,9 +256,9 @@ const CustomerOrderDetail = () => {
 
         {/* RIDER & LIVE TRACKING CARD */}
         {tracking?.partnerInfo && (
-          <div className="bg-slate-900 border border-[#d4af37]/40 rounded-3xl p-5 space-y-3 shadow-xl" id="delivery-partner-card">
+          <div className="bg-white border border-[#d4af37]/40 rounded-3xl p-5 space-y-3 shadow-xl" id="delivery-partner-card">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
                 <Bike size={16} className="text-[#d4af37]" /> Delivery Partner Information
               </h3>
               <span className="text-xs px-2.5 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full font-bold uppercase" id="rider-delivery-status">
@@ -269,9 +268,9 @@ const CustomerOrderDetail = () => {
 
             <div className="flex items-center justify-between pt-1">
               <div>
-                <p className="font-bold text-white text-sm" id="rider-name">{tracking.partnerInfo.fullName}</p>
-                <p className="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
-                  <Smartphone size={12} className="text-slate-500" />
+                <p className="font-bold text-gray-900 text-sm" id="rider-name">{tracking.partnerInfo.fullName}</p>
+                <p className="text-xs text-gray-500 flex items-center gap-2 mt-0.5">
+                  <Smartphone size={12} className="text-gray-400" />
                   <span id="rider-mobile">{tracking.partnerInfo.mobile}</span>
                   <span>•</span>
                   <span className="text-[#d4af37] font-semibold">{tracking.partnerInfo.vehicleType}</span>
@@ -281,12 +280,12 @@ const CustomerOrderDetail = () => {
 
             {/* Live GPS Coordinates Indicator */}
             {tracking.currentLocation && (
-              <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 text-slate-300">
+              <div className="p-3 bg-transparent/80 border border-gray-100 rounded-2xl flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 text-gray-700">
                   <Navigation size={14} className="text-[#d4af37] animate-pulse" />
                   <span>Live Real-Time GPS Position</span>
                 </div>
-                <span className="text-[11px] font-mono text-slate-400" id="rider-gps-coordinates">
+                <span className="text-[11px] font-mono text-gray-500" id="rider-gps-coordinates">
                   {tracking.currentLocation.latitude?.toFixed(4)}, {tracking.currentLocation.longitude?.toFixed(4)}
                 </span>
               </div>
@@ -295,8 +294,8 @@ const CustomerOrderDetail = () => {
         )}
 
         {/* Restaurant Section */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-3 shadow-xl" data-testid="restaurant-snapshot">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+        <div className="bg-white border border-gray-100 rounded-3xl p-5 space-y-3 shadow-xl" data-testid="restaurant-snapshot">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
             <Store size={16} className="text-[#d4af37]" /> Restaurant Details
           </h3>
           <div className="flex items-center gap-3 pt-1">
@@ -304,33 +303,33 @@ const CustomerOrderDetail = () => {
               <img
                 src={restaurantId.documents.restaurantImage}
                 alt={restaurantId.restaurantName}
-                className="w-12 h-12 rounded-2xl object-cover border border-slate-800"
+                className="w-12 h-12 rounded-2xl object-cover border border-gray-100"
               />
             )}
             <div>
-              <p className="font-bold text-white text-sm" data-testid="restaurant-name">
+              <p className="font-bold text-gray-900 text-sm" data-testid="restaurant-name">
                 {restaurantId?.restaurantName || 'Cloud Kitchen Restaurant'}
               </p>
-              <p className="text-xs text-slate-400">{restaurantId?.city || 'Delhi NCR'}</p>
+              <p className="text-xs text-gray-500">{restaurantId?.city || 'Delhi NCR'}</p>
             </div>
           </div>
         </div>
 
         {/* Delivery Address Section */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-2 shadow-xl" data-testid="delivery-address">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+        <div className="bg-white border border-gray-100 rounded-3xl p-5 space-y-2 shadow-xl" data-testid="delivery-address">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
             <MapPin size={16} className="text-[#d4af37]" /> Delivery Location
           </h3>
-          <p className="font-bold text-white text-sm" data-testid="address-recipient">{deliveryAddress?.name}</p>
-          <p className="text-xs text-slate-300">
+          <p className="font-bold text-gray-900 text-sm" data-testid="address-recipient">{deliveryAddress?.name}</p>
+          <p className="text-xs text-gray-700">
             {deliveryAddress?.addressLine1}, {deliveryAddress?.addressLine2 ? `${deliveryAddress.addressLine2}, ` : ''}{deliveryAddress?.city} - {deliveryAddress?.pincode}
           </p>
-          <p className="text-[11px] text-slate-400">Mobile: {deliveryAddress?.mobile}</p>
+          <p className="text-[11px] text-gray-500">Mobile: {deliveryAddress?.mobile}</p>
         </div>
 
         {/* Ordered Item Snapshots */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-3 shadow-xl" data-testid="ordered-items-list">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+        <div className="bg-white border border-gray-100 rounded-3xl p-5 space-y-3 shadow-xl" data-testid="ordered-items-list">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
             <ShoppingBag size={16} className="text-[#d4af37]" /> Ordered Items ({items.length})
           </h3>
 
@@ -342,46 +341,46 @@ const CustomerOrderDetail = () => {
                     <div className={`w-1.5 h-1.5 rounded-full ${item.foodType === 'VEG' ? 'bg-emerald-500' : 'bg-red-500'}`} />
                   </div>
                   <div>
-                    <p className="font-bold text-white truncate max-w-[200px]" data-testid="item-name">{item.foodNameSnapshot}</p>
-                    <p className="text-[11px] text-slate-400">₹{item.unitPrice} x {item.quantity}</p>
+                    <p className="font-bold text-gray-900 truncate max-w-[200px]" data-testid="item-name">{item.foodNameSnapshot}</p>
+                    <p className="text-[11px] text-gray-500">₹{item.unitPrice} x {item.quantity}</p>
                   </div>
                 </div>
-                <span className="font-bold text-white" data-testid="item-total">₹{item.itemTotal}</span>
+                <span className="font-bold text-gray-900" data-testid="item-total">₹{item.itemTotal}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Audited Financial Breakdown */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-3 shadow-xl" data-testid="pricing-summary">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+        <div className="bg-white border border-gray-100 rounded-3xl p-5 space-y-3 shadow-xl" data-testid="pricing-summary">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
             <Receipt size={16} className="text-[#d4af37]" /> Audited Bill Breakdown
           </h3>
 
           <div className="space-y-2 text-xs">
-            <div className="flex justify-between items-center text-slate-300">
+            <div className="flex justify-between items-center text-gray-700">
               <span>Items Subtotal</span>
-              <span className="font-bold text-white">₹{pricing?.itemSubtotal}</span>
+              <span className="font-bold text-gray-900">₹{pricing?.itemSubtotal}</span>
             </div>
 
-            <div className="flex justify-between items-center text-slate-300">
+            <div className="flex justify-between items-center text-gray-700">
               <span>Packaging Charge</span>
-              <span className="font-bold text-white">₹{pricing?.packagingFee}</span>
+              <span className="font-bold text-gray-900">₹{pricing?.packagingFee}</span>
             </div>
 
-            <div className="flex justify-between items-center text-slate-300">
+            <div className="flex justify-between items-center text-gray-700">
               <span>Delivery Fee</span>
-              <span className="font-bold text-white">{pricing?.deliveryFee === 0 ? 'FREE' : `₹${pricing?.deliveryFee}`}</span>
+              <span className="font-bold text-gray-900">{pricing?.deliveryFee === 0 ? 'FREE' : `₹${pricing?.deliveryFee}`}</span>
             </div>
 
-            <div className="flex justify-between items-center text-slate-300">
+            <div className="flex justify-between items-center text-gray-700">
               <span>Taxes (5% GST)</span>
-              <span className="font-bold text-white">₹{pricing?.tax}</span>
+              <span className="font-bold text-gray-900">₹{pricing?.tax}</span>
             </div>
 
-            <div className="flex justify-between items-center text-slate-300">
+            <div className="flex justify-between items-center text-gray-700">
               <span>Platform Fee</span>
-              <span className="font-bold text-white">₹{pricing?.platformFee}</span>
+              <span className="font-bold text-gray-900">₹{pricing?.platformFee}</span>
             </div>
 
             {pricing?.discount > 0 && (
@@ -391,8 +390,8 @@ const CustomerOrderDetail = () => {
               </div>
             )}
 
-            <div className="pt-3 border-t border-slate-800 flex justify-between items-center text-base">
-              <span className="font-black text-white">Grand Total</span>
+            <div className="pt-3 border-t border-gray-100 flex justify-between items-center text-base">
+              <span className="font-black text-gray-900">Grand Total</span>
               <span className="font-black text-[#d4af37] text-lg" data-testid="order-grand-total">
                 ₹{pricing?.grandTotal}
               </span>
@@ -406,7 +405,7 @@ const CustomerOrderDetail = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Star className="text-[#d4af37]" fill="#d4af37" size={20} />
-                <h3 className="font-bold text-white text-sm">Customer Rating & Review</h3>
+                <h3 className="font-bold text-gray-900 text-sm">Customer Rating & Review</h3>
               </div>
               {hasReviewed ? (
                 <span className="bg-emerald-500/20 text-emerald-400 text-xs px-3 py-1 rounded-full font-bold border border-emerald-500/30">
@@ -423,7 +422,7 @@ const CustomerOrderDetail = () => {
               )}
             </div>
             {hasReviewed && reviewData?.comment && (
-              <p className="text-xs text-slate-300 italic bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+              <p className="text-xs text-gray-700 italic bg-transparent/60 p-3 rounded-xl border border-gray-100">
                 "{reviewData.comment}"
               </p>
             )}
@@ -432,8 +431,8 @@ const CustomerOrderDetail = () => {
 
         {/* Status History Timeline */}
         {statusHistory && statusHistory.length > 0 && (
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-3 shadow-xl" data-testid="status-timeline">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+          <div className="bg-white border border-gray-100 rounded-3xl p-5 space-y-3 shadow-xl" data-testid="status-timeline">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
               <Clock size={16} className="text-[#d4af37]" /> Order Status Timeline
             </h3>
 
@@ -442,11 +441,11 @@ const CustomerOrderDetail = () => {
                 <div key={idx} className="flex gap-3 text-xs">
                   <div className="flex flex-col items-center">
                     <div className="w-2.5 h-2.5 rounded-full bg-[#d4af37] ring-4 ring-[#d4af37]/20" />
-                    {idx < statusHistory.length - 1 && <div className="w-0.5 h-full bg-slate-800 my-1" />}
+                    {idx < statusHistory.length - 1 && <div className="w-0.5 h-full bg-gray-50 my-1" />}
                   </div>
                   <div className="pb-1">
-                    <p className="font-bold text-white uppercase">{evt.status}</p>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="font-bold text-gray-900 uppercase">{evt.status}</p>
+                    <p className="text-[11px] text-gray-500">
                       {new Date(evt.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} • {evt.note || evt.updatedBy}
                     </p>
                   </div>
@@ -459,18 +458,18 @@ const CustomerOrderDetail = () => {
 
       {/* Review Modal */}
       {reviewModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl w-full max-w-md p-6 space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+        <div className="fixed inset-0 bg-transparent/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white border border-gray-100 rounded-3xl shadow-2xl w-full max-w-md p-6 space-y-4">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <Star className="text-[#d4af37]" fill="#d4af37" size={20} /> Rate Your Order
               </h3>
-              <button onClick={() => setReviewModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+              <button onClick={() => setReviewModalOpen(false)} className="text-gray-500 hover:text-gray-900">✕</button>
             </div>
 
             <form onSubmit={handleSubmitReview} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Overall Rating (1–5 Stars)</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Overall Rating (1–5 Stars)</label>
                 <div className="flex gap-2 text-2xl text-[#d4af37]">
                   {[1, 2, 3, 4, 5].map((s) => (
                     <button
@@ -482,16 +481,16 @@ const CustomerOrderDetail = () => {
                       ★
                     </button>
                   ))}
-                  <span className="text-xs font-bold text-slate-300 ml-2 self-center">{rating}/5 Stars</span>
+                  <span className="text-xs font-bold text-gray-700 ml-2 self-center">{rating}/5 Stars</span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Food Quality Rating</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Food Quality Rating</label>
                 <select
                   value={foodRating}
                   onChange={(e) => setFoodRating(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs outline-none focus:border-[#d4af37]"
+                  className="w-full bg-transparent border border-gray-100 text-gray-900 rounded-xl p-2.5 text-xs outline-none focus:border-[#d4af37]"
                 >
                   <option value={5}>5 Stars - Excellent Food</option>
                   <option value={4}>4 Stars - Good Taste</option>
@@ -502,11 +501,11 @@ const CustomerOrderDetail = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Delivery Speed & Service</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Delivery Speed & Service</label>
                 <select
                   value={deliveryRating}
                   onChange={(e) => setDeliveryRating(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs outline-none focus:border-[#d4af37]"
+                  className="w-full bg-transparent border border-gray-100 text-gray-900 rounded-xl p-2.5 text-xs outline-none focus:border-[#d4af37]"
                 >
                   <option value={5}>5 Stars - Fast Delivery</option>
                   <option value={4}>4 Stars - On Time</option>
@@ -517,24 +516,24 @@ const CustomerOrderDetail = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Written Comment</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Written Comment</label>
                 <textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   placeholder="Share details about food taste, packaging, or delivery experience..."
                   rows={3}
-                  className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-3 text-xs outline-none focus:border-[#d4af37] resize-none"
+                  className="w-full bg-transparent border border-gray-100 text-gray-900 rounded-xl p-3 text-xs outline-none focus:border-[#d4af37] resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Photo URL (Optional)</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Photo URL (Optional)</label>
                 <input
                   type="url"
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
                   placeholder="https://images.unsplash.com/photo-1546069901-ba9599a7e63c"
-                  className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs outline-none focus:border-[#d4af37]"
+                  className="w-full bg-transparent border border-gray-100 text-gray-900 rounded-xl p-2.5 text-xs outline-none focus:border-[#d4af37]"
                 />
               </div>
 
@@ -542,7 +541,7 @@ const CustomerOrderDetail = () => {
                 <button
                   type="button"
                   onClick={() => setReviewModalOpen(false)}
-                  className="flex-1 py-2.5 border border-slate-800 text-slate-400 font-bold text-xs rounded-xl hover:bg-slate-800"
+                  className="flex-1 py-2.5 border border-gray-100 text-gray-500 font-bold text-xs rounded-xl hover:bg-gray-50"
                 >
                   Cancel
                 </button>
@@ -560,7 +559,7 @@ const CustomerOrderDetail = () => {
         </div>
       )}
 
-      <CustomerBottomNav />
+      
     </div>
   );
 };

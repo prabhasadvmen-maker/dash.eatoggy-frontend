@@ -4,7 +4,7 @@ import { useCart } from '../../context/CartContext.jsx';
 import { getAddressesAPI, addAddressAPI } from '../../services/customer/addressService.js';
 import { getCheckoutSummaryAPI, initiateCheckoutAPI } from '../../services/customer/checkoutService.js';
 import { createOrderPaymentAPI, verifyOrderPaymentAPI } from '../../services/customer/paymentService.js';
-import CustomerBottomNav from '../../components/customer/CustomerBottomNav.jsx';
+
 import {
   ArrowLeft,
   MapPin,
@@ -210,7 +210,7 @@ const CustomerCheckout = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 text-slate-100" data-testid="customer-checkout-page">
+      <div className="space-y-6 max-w-7xl mx-auto pb-20">
         <div className="w-12 h-12 border-4 border-[#d4af37] border-t-transparent rounded-full animate-spin"></div>
         <p className="text-[#d4af37] mt-4 font-bold text-sm">Calculating server pricing...</p>
       </div>
@@ -221,10 +221,10 @@ const CustomerCheckout = () => {
 
   if (isEmptyCart) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 text-slate-100 text-center" data-testid="customer-checkout-page">
-        <UtensilsCrossed size={48} className="text-slate-600 mb-4" />
+      <div className="space-y-6 max-w-7xl mx-auto pb-20">
+        <UtensilsCrossed size={48} className="text-gray-300 mb-4" />
         <h2 className="text-xl font-bold mb-2">Your Box is Empty</h2>
-        <p className="text-slate-400 text-xs mb-6 max-w-sm">Please add items to your box before proceeding to checkout.</p>
+        <p className="text-gray-500 text-xs mb-6 max-w-sm">Please add items to your box before proceeding to checkout.</p>
         <button
           onClick={() => navigate('/user/home')}
           className="px-6 py-2.5 bg-[#d4af37] text-slate-950 font-bold rounded-xl text-xs uppercase"
@@ -236,31 +236,31 @@ const CustomerCheckout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col pb-20" data-testid="customer-checkout-page">
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-slate-900 border-b border-slate-800 px-4 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/user/cart')}
-            className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center hover:bg-slate-700 transition-colors cursor-pointer"
-            data-testid="checkout-back-btn"
-          >
-            <ArrowLeft size={18} className="text-white" />
-          </button>
-          <div>
-            <h1 className="text-lg font-black text-white">Checkout</h1>
-            <p className="text-xs text-slate-400">Server-Validated Pricing Summary</p>
+    <div className="space-y-6 max-w-7xl mx-auto pb-20">
+      {/* Main Content */}
+      <main className="flex-1 max-w-3xl mx-auto w-full p-4 space-y-4">
+        
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/user/cart')}
+              className="w-10 h-10 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
+              data-testid="checkout-back-btn"
+            >
+              <ArrowLeft size={18} className="text-gray-900" />
+            </button>
+            <div>
+              <h1 className="text-lg font-black text-gray-900">Checkout</h1>
+              <p className="text-xs text-gray-500">Server-Validated Pricing Summary</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-xs text-emerald-500 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100">
+            <ShieldCheck size={16} />
+            <span className="font-bold">Secured</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20">
-          <ShieldCheck size={16} />
-          <span className="font-bold">Secured</span>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="flex-1 max-w-3xl mx-auto w-full p-4 space-y-4">
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 flex items-center gap-3 text-red-400 text-xs">
             <AlertCircle size={18} className="shrink-0" />
@@ -269,9 +269,9 @@ const CustomerCheckout = () => {
         )}
 
         {/* Section 1: Delivery Address */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-xl" data-testid="address-section">
+        <div className="bg-white border border-gray-100 rounded-3xl p-5 space-y-4 shadow-xl" data-testid="address-section">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
               <MapPin size={16} className="text-[#d4af37]" /> Delivery Address
             </h3>
             <button
@@ -284,8 +284,8 @@ const CustomerCheckout = () => {
           </div>
 
           {addresses.length === 0 ? (
-            <div className="p-4 bg-slate-800/40 rounded-2xl border border-slate-800 text-center space-y-2">
-              <p className="text-xs text-slate-400">No saved delivery addresses found.</p>
+            <div className="p-4 bg-gray-50/40 rounded-2xl border border-gray-100 text-center space-y-2">
+              <p className="text-xs text-gray-500">No saved delivery addresses found.</p>
               <button
                 onClick={() => setShowAddressModal(true)}
                 className="px-4 py-2 bg-[#d4af37] text-slate-950 rounded-xl text-xs font-bold"
@@ -304,23 +304,23 @@ const CustomerCheckout = () => {
                     className={`p-4 rounded-2xl border transition-all cursor-pointer relative ${
                       isSelected
                         ? 'bg-[#d4af37]/10 border-[#d4af37] shadow-md'
-                        : 'bg-slate-800/50 border-slate-700/60 hover:border-slate-600'
+                        : 'bg-gray-50/50 border-gray-200/60 hover:border-slate-600'
                     }`}
                     data-testid="address-card"
                   >
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="px-2 py-0.5 bg-slate-800 text-slate-300 text-[10px] font-bold rounded uppercase flex items-center gap-1">
+                      <span className="px-2 py-0.5 bg-gray-50 text-gray-700 text-[10px] font-bold rounded uppercase flex items-center gap-1">
                         {addr.label === 'Home' && <Home size={10} />}
                         {addr.label === 'Work' && <Briefcase size={10} />}
                         {addr.label}
                       </span>
                       {isSelected && <CheckCircle size={16} className="text-[#d4af37]" />}
                     </div>
-                    <p className="font-bold text-white text-sm">{addr.name}</p>
-                    <p className="text-xs text-slate-300 line-clamp-2 mt-0.5">
+                    <p className="font-bold text-gray-900 text-sm">{addr.name}</p>
+                    <p className="text-xs text-gray-700 line-clamp-2 mt-0.5">
                       {addr.addressLine1}, {addr.addressLine2 ? `${addr.addressLine2}, ` : ''}{addr.city} - {addr.pincode}
                     </p>
-                    <p className="text-[11px] text-slate-400 mt-1">Ph: {addr.mobile}</p>
+                    <p className="text-[11px] text-gray-500 mt-1">Ph: {addr.mobile}</p>
                   </div>
                 );
               })}
@@ -330,12 +330,12 @@ const CustomerCheckout = () => {
 
         {/* Section 2: Order Items Summary */}
         {checkoutSummary && (
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-3 shadow-xl" data-testid="checkout-items-summary">
+          <div className="bg-white border border-gray-100 rounded-3xl p-5 space-y-3 shadow-xl" data-testid="checkout-items-summary">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
                 <Store size={16} className="text-[#d4af37]" /> {checkoutSummary.restaurantName || 'Restaurant Items'}
               </h3>
-              <span className="text-xs text-slate-400 font-medium">{checkoutSummary.items.length} Items</span>
+              <span className="text-xs text-gray-500 font-medium">{checkoutSummary.items.length} Items</span>
             </div>
 
             <div className="divide-y divide-slate-800/60 pt-1">
@@ -343,7 +343,7 @@ const CustomerCheckout = () => {
                 <div key={item.menuItemId} className="py-2.5 flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="w-5 font-bold text-[#d4af37] text-right">{item.quantity}x</span>
-                    <span className="font-semibold text-white truncate max-w-[220px]">{item.name}</span>
+                    <span className="font-semibold text-gray-900 truncate max-w-[220px]">{item.name}</span>
                   </div>
                   <div className="text-right">
                     <span className="font-bold text-slate-200">₹{item.itemSubtotal}</span>
@@ -356,40 +356,40 @@ const CustomerCheckout = () => {
 
         {/* Section 3: Detailed Server Bill Breakdown */}
         {checkoutSummary && (
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-3 shadow-xl" data-testid="bill-breakdown-card">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Audited Bill Breakdown</h3>
+          <div className="bg-white border border-gray-100 rounded-3xl p-5 space-y-3 shadow-xl" data-testid="bill-breakdown-card">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500">Audited Bill Breakdown</h3>
 
             <div className="space-y-2 text-xs">
-              <div className="flex justify-between items-center text-slate-300">
+              <div className="flex justify-between items-center text-gray-700">
                 <span>Items Subtotal</span>
-                <span className="font-bold text-white" data-testid="bill-subtotal">₹{checkoutSummary.itemSubtotal}</span>
+                <span className="font-bold text-gray-900" data-testid="bill-subtotal">₹{checkoutSummary.itemSubtotal}</span>
               </div>
 
-              <div className="flex justify-between items-center text-slate-300">
+              <div className="flex justify-between items-center text-gray-700">
                 <span>Restaurant Packaging Charge</span>
-                <span className="font-bold text-white" data-testid="bill-packaging">₹{checkoutSummary.packagingFee}</span>
+                <span className="font-bold text-gray-900" data-testid="bill-packaging">₹{checkoutSummary.packagingFee}</span>
               </div>
 
-              <div className="flex justify-between items-center text-slate-300">
+              <div className="flex justify-between items-center text-gray-700">
                 <div className="flex items-center gap-1.5">
                   <span>Delivery Fee</span>
                   {checkoutSummary.isFreeDelivery && (
                     <span className="text-[9px] bg-emerald-500/20 text-emerald-400 font-bold px-1.5 py-0.5 rounded">FREE</span>
                   )}
                 </div>
-                <span className={`font-bold ${checkoutSummary.isFreeDelivery ? 'text-emerald-400' : 'text-white'}`} data-testid="bill-delivery-fee">
+                <span className={`font-bold ${checkoutSummary.isFreeDelivery ? 'text-emerald-400' : 'text-gray-900'}`} data-testid="bill-delivery-fee">
                   {checkoutSummary.isFreeDelivery ? 'FREE' : `₹${checkoutSummary.deliveryFee}`}
                 </span>
               </div>
 
-              <div className="flex justify-between items-center text-slate-300">
+              <div className="flex justify-between items-center text-gray-700">
                 <span>Taxes (5% GST)</span>
-                <span className="font-bold text-white" data-testid="bill-tax">₹{checkoutSummary.tax}</span>
+                <span className="font-bold text-gray-900" data-testid="bill-tax">₹{checkoutSummary.tax}</span>
               </div>
 
-              <div className="flex justify-between items-center text-slate-300">
+              <div className="flex justify-between items-center text-gray-700">
                 <span>Platform Fee</span>
-                <span className="font-bold text-white" data-testid="bill-platform-fee">₹{checkoutSummary.platformFee}</span>
+                <span className="font-bold text-gray-900" data-testid="bill-platform-fee">₹{checkoutSummary.platformFee}</span>
               </div>
 
               {checkoutSummary.discount > 0 && (
@@ -399,8 +399,8 @@ const CustomerCheckout = () => {
                 </div>
               )}
 
-              <div className="pt-3 border-t border-slate-800 flex justify-between items-center text-base">
-                <span className="font-black text-white">Grand Total</span>
+              <div className="pt-3 border-t border-gray-100 flex justify-between items-center text-base">
+                <span className="font-black text-gray-900">Grand Total</span>
                 <span className="font-black text-[#d4af37] text-lg" data-testid="bill-grand-total">
                   ₹{checkoutSummary.grandTotal}
                 </span>
@@ -410,19 +410,19 @@ const CustomerCheckout = () => {
         )}
 
         {/* Section 4: Payment Option & Initiation */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-xl">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+        <div className="bg-white border border-gray-100 rounded-3xl p-5 space-y-4 shadow-xl">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
             <CreditCard size={16} className="text-[#d4af37]" /> Payment Method
           </h3>
 
-          <div className="p-3 bg-slate-800/40 border border-slate-700/50 rounded-2xl flex items-center justify-between">
+          <div className="p-3 bg-gray-50/40 border border-gray-200/50 rounded-2xl flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-amber-500/10 text-[#d4af37] rounded-xl flex items-center justify-center font-bold">
                 💳
               </div>
               <div>
-                <p className="font-bold text-white text-sm">Online Payment / Razorpay</p>
-                <p className="text-[11px] text-slate-400">UPI, Cards, NetBanking, Wallets</p>
+                <p className="font-bold text-gray-900 text-sm">Online Payment / Razorpay</p>
+                <p className="text-[11px] text-gray-500">UPI, Cards, NetBanking, Wallets</p>
               </div>
             </div>
             <CheckCircle size={18} className="text-[#d4af37]" />
@@ -448,14 +448,14 @@ const CustomerCheckout = () => {
       {/* Add Address Modal */}
       {showAddressModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" data-testid="address-modal">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
+          <div className="bg-white border border-gray-100 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
                 <MapPin size={18} className="text-[#d4af37]" /> Add Delivery Address
               </h3>
               <button
                 onClick={() => setShowAddressModal(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-gray-500 hover:text-gray-900"
               >
                 <X size={18} />
               </button>
@@ -469,67 +469,67 @@ const CustomerCheckout = () => {
 
             <form onSubmit={handleSaveAddress} className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-400 font-semibold mb-1">Recipient Name *</label>
+                <label className="block text-gray-500 font-semibold mb-1">Recipient Name *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Rahul Sharma"
                   value={newAddress.name}
                   onChange={(e) => setNewAddress({ ...newAddress, name: e.target.value })}
-                  className="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white focus:border-[#d4af37] focus:outline-none"
+                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:border-[#d4af37] focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 font-semibold mb-1">Recipient Mobile *</label>
+                <label className="block text-gray-500 font-semibold mb-1">Recipient Mobile *</label>
                 <input
                   type="text"
                   required
                   placeholder="10-digit Indian Mobile"
                   value={newAddress.mobile}
                   onChange={(e) => setNewAddress({ ...newAddress, mobile: e.target.value })}
-                  className="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white focus:border-[#d4af37] focus:outline-none"
+                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:border-[#d4af37] focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 font-semibold mb-1">Address Line 1 (Flat, House No, Building) *</label>
+                <label className="block text-gray-500 font-semibold mb-1">Address Line 1 (Flat, House No, Building) *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Flat 302, Sunrise Apartments"
                   value={newAddress.addressLine1}
                   onChange={(e) => setNewAddress({ ...newAddress, addressLine1: e.target.value })}
-                  className="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white focus:border-[#d4af37] focus:outline-none"
+                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:border-[#d4af37] focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-slate-400 font-semibold mb-1">City *</label>
+                  <label className="block text-gray-500 font-semibold mb-1">City *</label>
                   <input
                     type="text"
                     required
                     value={newAddress.city}
                     onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
-                    className="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white focus:border-[#d4af37] focus:outline-none"
+                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:border-[#d4af37] focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 font-semibold mb-1">Pincode *</label>
+                  <label className="block text-gray-500 font-semibold mb-1">Pincode *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. 110001"
                     value={newAddress.pincode}
                     onChange={(e) => setNewAddress({ ...newAddress, pincode: e.target.value })}
-                    className="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white focus:border-[#d4af37] focus:outline-none"
+                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:border-[#d4af37] focus:outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-400 font-semibold mb-1">Address Label</label>
+                <label className="block text-gray-500 font-semibold mb-1">Address Label</label>
                 <div className="flex gap-2">
                   {['Home', 'Work', 'Other'].map((lbl) => (
                     <button
@@ -539,7 +539,7 @@ const CustomerCheckout = () => {
                       className={`flex-1 py-2 rounded-xl border text-xs font-bold ${
                         newAddress.label === lbl
                           ? 'bg-[#d4af37] text-slate-950 border-[#d4af37]'
-                          : 'bg-slate-800 text-slate-300 border-slate-700'
+                          : 'bg-gray-50 text-gray-700 border-gray-200'
                       }`}
                     >
                       {lbl}
@@ -552,7 +552,7 @@ const CustomerCheckout = () => {
                 <button
                   type="button"
                   onClick={() => setShowAddressModal(false)}
-                  className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl"
+                  className="flex-1 py-2.5 bg-gray-50 hover:bg-gray-50 text-gray-700 font-bold rounded-xl"
                 >
                   Cancel
                 </button>
@@ -570,7 +570,7 @@ const CustomerCheckout = () => {
         </div>
       )}
 
-      <CustomerBottomNav />
+      
     </div>
   );
 };

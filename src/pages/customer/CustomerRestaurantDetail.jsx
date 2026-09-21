@@ -86,7 +86,7 @@ const CustomerRestaurantDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-100">
+      <div className="space-y-6 max-w-7xl mx-auto pb-20">
         <UtensilsCrossed size={48} className="text-[#d4af37] animate-bounce mb-4" />
         <h2 className="text-xl font-bold">Loading Menu...</h2>
       </div>
@@ -95,12 +95,12 @@ const CustomerRestaurantDetail = () => {
 
   if (error || !restaurant) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-100 px-4">
+      <div className="space-y-6 max-w-7xl mx-auto pb-20">
         <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-4">
           <Info size={32} className="text-red-500" />
         </div>
         <h2 className="text-2xl font-bold mb-2">Oops!</h2>
-        <p className="text-slate-400 mb-6 text-center max-w-sm">{error || 'Restaurant not available'}</p>
+        <p className="text-gray-500 mb-6 text-center max-w-sm">{error || 'Restaurant not available'}</p>
         <button
           onClick={() => navigate('/user/home')}
           className="px-6 py-2 bg-[#d4af37] text-slate-950 font-bold rounded-xl"
@@ -121,25 +121,24 @@ const CustomerRestaurantDetail = () => {
     : (currentCategory?.items || currentCategory?.subcategories?.flatMap(s => s.items || []) || []);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between">
-        <button
-          onClick={() => navigate('/user/home')}
-          className="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center hover:bg-slate-800 transition-colors cursor-pointer"
-        >
-          <ArrowLeft size={20} className="text-white" />
-        </button>
-        <div className="flex items-center gap-3">
-          <button className="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center hover:bg-slate-800 transition-colors cursor-pointer">
-            <Search size={18} className="text-slate-300" />
-          </button>
-        </div>
-      </header>
-
+    <div className="space-y-6 max-w-7xl mx-auto pb-20">
       <main className="flex-1 max-w-5xl mx-auto w-full pb-20">
+        
+        <div className="bg-transparent/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center justify-between mb-2 rounded-t-2xl">
+          <button
+            onClick={() => navigate('/user/home')}
+            className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center hover:bg-gray-50 transition-colors cursor-pointer"
+          >
+            <ArrowLeft size={20} className="text-gray-900" />
+          </button>
+          <div className="flex items-center gap-3">
+            <button className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center hover:bg-gray-50 transition-colors cursor-pointer">
+              <Search size={18} className="text-gray-700" />
+            </button>
+          </div>
+        </div>
         {/* Restaurant Info Cover */}
-        <div className="relative h-64 md:h-80 bg-slate-900">
+        <div className="relative h-64 md:h-80 bg-white">
           {restaurant.documents?.restaurantImage ? (
             <img
               src={restaurant.documents.restaurantImage}
@@ -152,23 +151,23 @@ const CustomerRestaurantDetail = () => {
             </div>
           )}
           
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-gray-50 via-gray-50/80 to-transparent"></div>
           
           <div className="absolute bottom-0 left-0 p-6 w-full">
             <span className="px-3 py-1 bg-[#d4af37]/20 text-[#d4af37] text-[10px] font-bold rounded-full border border-[#d4af37]/30 uppercase tracking-wider mb-3 inline-block">
               {restaurant.restaurantType || 'Cloud Kitchen'}
             </span>
-            <h1 className="text-3xl md:text-5xl font-black text-white mb-2 tracking-tight">
+            <h1 className="text-3xl md:text-5xl font-black text-gray-900 mb-2 tracking-tight">
               {restaurant.restaurantName}
             </h1>
-            <p className="text-slate-300 mb-4 flex items-center gap-2 text-sm">
+            <p className="text-gray-700 mb-4 flex items-center gap-2 text-sm">
               <span className="truncate max-w-xs">{restaurant.cuisine || 'Multi-Cuisine'}</span>
               <span>•</span>
               <span className="truncate max-w-xs">{restaurant.city || 'Local'}</span>
             </p>
             
             <div className="flex items-center gap-4 text-xs font-semibold">
-              <div className="flex items-center gap-1.5 bg-slate-900/50 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-800 text-slate-300">
+              <div className="flex items-center gap-1.5 bg-white/50 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-gray-100 text-gray-700">
                 <Clock size={14} className="text-[#d4af37]" />
                 <span>25-30 mins</span>
               </div>
@@ -181,10 +180,10 @@ const CustomerRestaurantDetail = () => {
         </div>
 
         {/* Menu Navigation */}
-        <div className="px-6 py-6 sticky top-[65px] bg-slate-950 z-20 border-b border-slate-800/50">
+        <div className="px-6 py-6 sticky top-[65px] bg-transparent z-20 border-b border-gray-100/50">
           {menuData.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-slate-400">This restaurant hasn't added any menu items yet.</p>
+              <p className="text-gray-500">This restaurant hasn't added any menu items yet.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -197,7 +196,7 @@ const CustomerRestaurantDetail = () => {
                     className={`whitespace-nowrap px-5 py-2.5 rounded-full text-sm font-bold transition-all cursor-pointer ${
                       activeCategory === category._id
                         ? 'bg-[#d4af37] text-slate-950 shadow-md'
-                        : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700'
+                        : 'bg-white text-gray-500 hover:text-gray-900 border border-gray-100 hover:border-gray-200'
                     }`}
                   >
                     {category.name}
@@ -215,7 +214,7 @@ const CustomerRestaurantDetail = () => {
                       className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                         activeSubcategory === subcat._id
                           ? 'bg-slate-100 text-slate-900'
-                          : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 border border-slate-700/50'
+                          : 'bg-gray-50/50 text-gray-500 hover:bg-gray-50 border border-gray-200/50'
                       }`}
                     >
                       {subcat.name}
@@ -230,9 +229,9 @@ const CustomerRestaurantDetail = () => {
         {/* Menu Items List */}
         <div className="p-6">
           {displayItems.length === 0 && menuData.length > 0 ? (
-            <div className="text-center py-12 bg-slate-900/30 rounded-2xl border border-slate-800/50">
-              <UtensilsCrossed size={32} className="text-slate-600 mx-auto mb-3" />
-              <p className="text-slate-400 font-medium">No items available in this category.</p>
+            <div className="text-center py-12 bg-white/30 rounded-2xl border border-gray-100/50">
+              <UtensilsCrossed size={32} className="text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500 font-medium">No items available in this category.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -240,7 +239,7 @@ const CustomerRestaurantDetail = () => {
                 <div
                   key={item._id}
                   onClick={() => setSelectedFoodItem(item)}
-                  className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex gap-4 hover:border-slate-700 transition-colors group cursor-pointer"
+                  className="bg-white/80 border border-gray-100 rounded-2xl p-4 flex gap-4 hover:border-gray-200 transition-colors group cursor-pointer"
                   data-testid="menu-item-card"
                 >
                   <div className="flex-1 flex flex-col justify-between">
@@ -254,29 +253,29 @@ const CustomerRestaurantDetail = () => {
                           }`}></div>
                         </div>
                         {item.preparationTime && (
-                          <span className="text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">
                             {item.preparationTime} mins
                           </span>
                         )}
                       </div>
                       
-                      <h3 className="text-lg font-bold text-white mb-1 leading-tight group-hover:text-[#d4af37] transition-colors">
+                      <h3 className="text-lg font-bold text-gray-900 mb-1 leading-tight group-hover:text-[#d4af37] transition-colors">
                         {item.name}
                       </h3>
                       
-                      <div className="text-sm font-black text-white mb-2 flex items-center">
+                      <div className="text-sm font-black text-gray-900 mb-2 flex items-center">
                         <span className="text-[#d4af37] mr-0.5">₹</span>{item.price}
                       </div>
                       
                       {item.description && (
-                        <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                        <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">
                           {item.description}
                         </p>
                       )}
                     </div>
                     
                     {/* Add to Cart Real Controls */}
-                    <div className="mt-4 pt-4 border-t border-slate-800/50 flex justify-end" onClick={(e) => e.stopPropagation()}>
+                    <div className="mt-4 pt-4 border-t border-gray-100/50 flex justify-end" onClick={(e) => e.stopPropagation()}>
                       {(() => {
                         const cartItem = cart?.items?.find(
                           ci => ci.menuItemId === item._id || ci.menuItemId?._id === item._id
@@ -335,12 +334,12 @@ const CustomerRestaurantDetail = () => {
                   </div>
                   
                   {/* Item Image */}
-                  <div className="w-32 h-32 bg-slate-800 rounded-xl overflow-hidden shrink-0 relative border border-slate-700/50">
+                  <div className="w-32 h-32 bg-gray-50 rounded-xl overflow-hidden shrink-0 relative border border-gray-200/50">
                     {item.image ? (
                       <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <UtensilsCrossed size={24} className="text-slate-600" />
+                        <UtensilsCrossed size={24} className="text-gray-300" />
                       </div>
                     )}
                   </div>
@@ -356,7 +355,7 @@ const CustomerRestaurantDetail = () => {
         <div className="fixed bottom-4 left-4 right-4 max-w-xl mx-auto z-40" data-testid="floating-cart-bar">
           <div className="bg-gradient-to-r from-amber-600 to-[#d4af37] text-slate-950 p-4 rounded-2xl shadow-2xl flex items-center justify-between border border-amber-400/50">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-slate-950/20 rounded-xl flex items-center justify-center text-slate-950 font-black">
+              <div className="w-10 h-10 bg-transparent/20 rounded-xl flex items-center justify-center text-slate-950 font-black">
                 <ShoppingBag size={20} />
               </div>
               <div>
@@ -371,7 +370,7 @@ const CustomerRestaurantDetail = () => {
 
             <button
               onClick={() => navigate('/user/cart')}
-              className="px-5 py-2.5 bg-slate-950 text-[#d4af37] hover:bg-slate-900 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-md"
+              className="px-5 py-2.5 bg-transparent text-[#d4af37] hover:bg-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-md"
               data-testid="view-cart-btn"
             >
               <span>View Box</span>

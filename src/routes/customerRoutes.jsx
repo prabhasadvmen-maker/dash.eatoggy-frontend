@@ -2,6 +2,7 @@ import React from 'react';
 import { Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from '../components/common/ProtectedRoute';
 import UserLogin from '../pages/auth/UserLogin';
+import CustomerDashboardLayout from '../layouts/customer/CustomerDashboardLayout';
 import CustomerDashboard from '../pages/customer/CustomerDashboard';
 import CustomerHome from '../pages/customer/CustomerHome';
 import CustomerRestaurantDetail from '../pages/customer/CustomerRestaurantDetail';
@@ -15,176 +16,42 @@ import TiffinPlanDetailCheckout from '../pages/customer/TiffinPlanDetailCheckout
 import CustomerSubscriptionsList from '../pages/customer/CustomerSubscriptionsList';
 import CustomerSubscriptionDetail from '../pages/customer/CustomerSubscriptionDetail';
 import CustomerSupport from '../pages/customer/CustomerSupport';
-import { LocationProvider } from '../context/LocationContext';
-import { CartProvider } from '../context/CartContext';
+import ComingSoon from '../pages/website/ComingSoon';
+import { Tags, Bell, MapPin, UserCircle, Settings, HelpCircle } from 'lucide-react';
 
 export const renderCustomerRoutes = () => (
   <>
+    <Route path="/user/login" element={<UserLogin />} />
+
     <Route
-      path="/user/login"
-      element={
-        <LocationProvider>
-          <UserLogin />
-        </LocationProvider>
-      }
-    />
-    <Route
-      path="/user/home"
+      path="/user"
       element={
         <ProtectedRoute roleType="customer">
-          <LocationProvider>
-            <CartProvider>
-              <CustomerHome />
-            </CartProvider>
-          </LocationProvider>
+          <CustomerDashboardLayout />
         </ProtectedRoute>
       }
-    />
-    <Route
-      path="/user/dashboard"
-      element={
-        <ProtectedRoute roleType="customer">
-          <LocationProvider>
-            <CartProvider>
-              <CustomerDashboard />
-            </CartProvider>
-          </LocationProvider>
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/user/restaurant/:id"
-      element={
-        <ProtectedRoute roleType="customer">
-          <LocationProvider>
-            <CartProvider>
-              <CustomerRestaurantDetail />
-            </CartProvider>
-          </LocationProvider>
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/user/cart"
-      element={
-        <ProtectedRoute roleType="customer">
-          <LocationProvider>
-            <CartProvider>
-              <CustomerCart />
-            </CartProvider>
-          </LocationProvider>
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/user/checkout"
-      element={
-        <ProtectedRoute roleType="customer">
-          <LocationProvider>
-            <CartProvider>
-              <CustomerCheckout />
-            </CartProvider>
-          </LocationProvider>
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/user/order-confirmation/:id"
-      element={
-        <ProtectedRoute roleType="customer">
-          <LocationProvider>
-            <CartProvider>
-              <CustomerOrderConfirmation />
-            </CartProvider>
-          </LocationProvider>
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/user/orders"
-      element={
-        <ProtectedRoute roleType="customer">
-          <LocationProvider>
-            <CartProvider>
-              <CustomerOrders />
-            </CartProvider>
-          </LocationProvider>
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/user/orders/:id"
-      element={
-        <ProtectedRoute roleType="customer">
-          <LocationProvider>
-            <CartProvider>
-              <CustomerOrderDetail />
-            </CartProvider>
-          </LocationProvider>
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/user/tiffin-plans"
-      element={
-        <ProtectedRoute roleType="customer">
-          <LocationProvider>
-            <CartProvider>
-              <TiffinPlansDiscovery />
-            </CartProvider>
-          </LocationProvider>
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/user/tiffin-plans/:id"
-      element={
-        <ProtectedRoute roleType="customer">
-          <LocationProvider>
-            <CartProvider>
-              <TiffinPlanDetailCheckout />
-            </CartProvider>
-          </LocationProvider>
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/user/subscriptions"
-      element={
-        <ProtectedRoute roleType="customer">
-          <LocationProvider>
-            <CartProvider>
-              <CustomerSubscriptionsList />
-            </CartProvider>
-          </LocationProvider>
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/user/subscriptions/:id"
-      element={
-        <ProtectedRoute roleType="customer">
-          <LocationProvider>
-            <CartProvider>
-              <CustomerSubscriptionDetail />
-            </CartProvider>
-          </LocationProvider>
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/user/support"
-      element={
-        <ProtectedRoute roleType="customer">
-          <LocationProvider>
-            <CartProvider>
-              <CustomerSupport />
-            </CartProvider>
-          </LocationProvider>
-        </ProtectedRoute>
-      }
-    />
-    <Route path="/user" element={<Navigate to="/user/home" replace />} />
+    >
+      <Route index element={<Navigate to="/user/dashboard" replace />} />
+      <Route path="dashboard" element={<CustomerDashboard />} />
+      <Route path="home" element={<CustomerHome />} />
+      <Route path="restaurant/:id" element={<CustomerRestaurantDetail />} />
+      <Route path="cart" element={<CustomerCart />} />
+      <Route path="checkout" element={<CustomerCheckout />} />
+      <Route path="order-confirmation/:id" element={<CustomerOrderConfirmation />} />
+      <Route path="orders" element={<CustomerOrders />} />
+      <Route path="orders/:id" element={<CustomerOrderDetail />} />
+      <Route path="tiffin-plans" element={<TiffinPlansDiscovery />} />
+      <Route path="tiffin-plans/:id" element={<TiffinPlanDetailCheckout />} />
+      <Route path="subscriptions" element={<CustomerSubscriptionsList />} />
+      <Route path="subscriptions/:id" element={<CustomerSubscriptionDetail />} />
+      <Route path="support" element={<CustomerSupport />} />
+      <Route path="offers" element={<ComingSoon title="Offers & Coupons" icon={Tags} />} />
+      <Route path="notifications" element={<ComingSoon title="Notifications" icon={Bell} />} />
+      <Route path="addresses" element={<ComingSoon title="My Addresses" icon={MapPin} />} />
+      <Route path="profile" element={<ComingSoon title="My Profile" icon={UserCircle} />} />
+      <Route path="settings" element={<ComingSoon title="Settings" icon={Settings} />} />
+      <Route path="help" element={<ComingSoon title="Help Center" icon={HelpCircle} />} />
+    </Route>
   </>
 );
 

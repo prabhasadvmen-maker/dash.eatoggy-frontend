@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getTiffinPlanByIdAPI, createSubscriptionAPI, verifySubscriptionPaymentAPI } from '../../services/subscription/subscriptionService.js';
 import { getAddressesAPI } from '../../services/customer/addressService.js';
-import CustomerBottomNav from '../../components/customer/CustomerBottomNav.jsx';
+
 import {
   ArrowLeft,
   Calendar,
@@ -120,7 +120,7 @@ const TiffinPlanDetailCheckout = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 text-slate-100" data-testid="tiffin-checkout-loading">
+      <div className="space-y-6 max-w-7xl mx-auto pb-20">
         <div className="w-10 h-10 border-4 border-[#d4af37] border-t-transparent rounded-full animate-spin"></div>
         <p className="text-xs text-[#d4af37] font-bold mt-3">Loading checkout details...</p>
       </div>
@@ -129,9 +129,9 @@ const TiffinPlanDetailCheckout = () => {
 
   if (!plan) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 text-slate-100">
+      <div className="space-y-6 max-w-7xl mx-auto pb-20">
         <AlertCircle size={40} className="text-red-400 mb-2" />
-        <p className="text-sm font-bold text-white mb-4">Tiffin plan not found</p>
+        <p className="text-sm font-bold text-gray-900 mb-4">Tiffin plan not found</p>
         <button
           onClick={() => navigate('/user/tiffin-plans')}
           className="px-4 py-2 bg-[#d4af37] text-slate-950 font-bold rounded-xl text-xs"
@@ -147,26 +147,25 @@ const TiffinPlanDetailCheckout = () => {
   const totalPrice = Math.max(0, rawSubtotal - discountAmount);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col pb-20" data-testid="tiffin-plan-detail-checkout-page">
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-slate-900 border-b border-slate-800 px-4 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/user/tiffin-plans')}
-            className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center hover:bg-slate-700 transition-colors cursor-pointer"
-            data-testid="checkout-back-btn"
-          >
-            <ArrowLeft size={18} className="text-white" />
-          </button>
-          <div>
-            <h1 className="text-lg font-black text-white">Subscribe to Plan</h1>
-            <p className="text-xs text-slate-400">{plan.restaurantId?.restaurantName || 'Restaurant Tiffin'}</p>
-          </div>
-        </div>
-      </header>
-
+    <div className="space-y-6 max-w-7xl mx-auto pb-20">
       {/* Main Content */}
       <main className="flex-1 max-w-2xl mx-auto w-full p-4 space-y-5">
+        
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/user/tiffin-plans')}
+              className="w-10 h-10 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
+              data-testid="checkout-back-btn"
+            >
+              <ArrowLeft size={18} className="text-gray-900" />
+            </button>
+            <div>
+              <h1 className="text-lg font-black text-gray-900">Subscribe to Plan</h1>
+              <p className="text-xs text-gray-500">{plan.restaurantId?.restaurantName || 'Restaurant Tiffin'}</p>
+            </div>
+          </div>
+        </div>
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 flex items-center gap-3 text-red-400 text-xs">
             <AlertCircle size={18} className="shrink-0" />
@@ -182,7 +181,7 @@ const TiffinPlanDetailCheckout = () => {
         )}
 
         {/* Plan Overview Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-xl" data-testid="plan-summary-card">
+        <div className="bg-white border border-gray-100 rounded-3xl p-5 space-y-4 shadow-xl" data-testid="plan-summary-card">
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2">
@@ -193,18 +192,18 @@ const TiffinPlanDetailCheckout = () => {
                   {plan.durationDays} Days Plan
                 </span>
               </div>
-              <h2 className="text-lg font-bold text-white mt-2" data-testid="checkout-plan-name">{plan.name || plan.planName}</h2>
-              <p className="text-xs text-slate-400 mt-1">{plan.description}</p>
+              <h2 className="text-lg font-bold text-gray-900 mt-2" data-testid="checkout-plan-name">{plan.name || plan.planName}</h2>
+              <p className="text-xs text-gray-500 mt-1">{plan.description}</p>
             </div>
             <div className="text-right">
-              <span className="text-xs text-slate-400">Total Price</span>
+              <span className="text-xs text-gray-500">Total Price</span>
               <p className="text-xl font-black text-[#d4af37]" data-testid="checkout-plan-price">₹{totalPrice}</p>
             </div>
           </div>
 
           {plan.items && plan.items.length > 0 && (
-            <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-3.5 space-y-2">
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Daily Included Menu:</p>
+            <div className="bg-transparent/70 border border-gray-100 rounded-2xl p-3.5 space-y-2">
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Daily Included Menu:</p>
               <div className="grid grid-cols-2 gap-2">
                 {plan.items.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-xs text-slate-200">
@@ -218,38 +217,38 @@ const TiffinPlanDetailCheckout = () => {
         </div>
 
         {/* Subscription Configurations */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-xl">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+        <div className="bg-white border border-gray-100 rounded-3xl p-5 space-y-4 shadow-xl">
+          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3">
             <Calendar size={16} className="text-[#d4af37]" />
             Subscription Start Date
           </h3>
 
           <div className="space-y-1.5">
-            <label className="text-xs text-slate-400">Select Starting Date:</label>
+            <label className="text-xs text-gray-500">Select Starting Date:</label>
             <input
               type="date"
               value={startDate}
               min={new Date().toISOString().split('T')[0]}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-white focus:outline-none focus:border-[#d4af37]"
+              className="w-full px-3.5 py-2.5 bg-transparent border border-gray-100 rounded-2xl text-xs text-gray-900 focus:outline-none focus:border-[#d4af37]"
               data-testid="start-date-input"
             />
-            <p className="text-[11px] text-slate-500 flex items-center gap-1">
+            <p className="text-[11px] text-gray-400 flex items-center gap-1">
               <Info size={12} /> Deliveries will occur for {plan.durationDays} scheduled days starting on this date.
             </p>
           </div>
         </div>
 
         {/* Delivery Address Selection */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-xl">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+        <div className="bg-white border border-gray-100 rounded-3xl p-5 space-y-4 shadow-xl">
+          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3">
             <MapPin size={16} className="text-[#d4af37]" />
             Select Delivery Address
           </h3>
 
           {addresses.length === 0 ? (
             <div className="text-center py-4 space-y-2">
-              <p className="text-xs text-slate-400">No saved addresses found.</p>
+              <p className="text-xs text-gray-500">No saved addresses found.</p>
               <button
                 onClick={() => navigate('/user/addresses')}
                 className="px-3 py-1.5 bg-[#d4af37] text-slate-950 text-xs font-bold rounded-xl"
@@ -264,8 +263,8 @@ const TiffinPlanDetailCheckout = () => {
                   key={addr._id}
                   className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${
                     selectedAddressId === addr._id
-                      ? 'bg-[#d4af37]/10 border-[#d4af37] text-white'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                      ? 'bg-[#d4af37]/10 border-[#d4af37] text-gray-900'
+                      : 'bg-transparent border-gray-100 text-gray-500 hover:border-gray-200'
                   }`}
                 >
                   <input
@@ -279,13 +278,13 @@ const TiffinPlanDetailCheckout = () => {
                   />
                   <div className="flex-1 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-white">{addr.addressType || 'Home'}</span>
+                      <span className="font-bold text-gray-900">{addr.addressType || 'Home'}</span>
                       {addr.isDefault && (
                         <span className="text-[10px] text-[#d4af37] font-bold">Default</span>
                       )}
                     </div>
-                    <p className="text-slate-300 mt-0.5">{addr.streetAddress || addr.addressLine1}, {addr.city}</p>
-                    {addr.landmark && <p className="text-slate-500 text-[11px]">Landmark: {addr.landmark}</p>}
+                    <p className="text-gray-700 mt-0.5">{addr.streetAddress || addr.addressLine1}, {addr.city}</p>
+                    {addr.landmark && <p className="text-gray-400 text-[11px]">Landmark: {addr.landmark}</p>}
                   </div>
                 </label>
               ))}
@@ -294,11 +293,11 @@ const TiffinPlanDetailCheckout = () => {
         </div>
 
         {/* Pricing Summary */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-3 shadow-xl">
-          <h3 className="text-sm font-bold text-white border-b border-slate-800 pb-3">Payment Summary</h3>
-          <div className="space-y-2 text-xs text-slate-300">
+        <div className="bg-white border border-gray-100 rounded-3xl p-5 space-y-3 shadow-xl">
+          <h3 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-3">Payment Summary</h3>
+          <div className="space-y-2 text-xs text-gray-700">
             <div className="flex justify-between">
-              <span className="text-slate-400">Price Per Meal x {plan.durationDays} Days</span>
+              <span className="text-gray-500">Price Per Meal x {plan.durationDays} Days</span>
               <span>₹{rawSubtotal}</span>
             </div>
             {discountAmount > 0 && (
@@ -307,11 +306,11 @@ const TiffinPlanDetailCheckout = () => {
                 <span>-₹{discountAmount}</span>
               </div>
             )}
-            <div className="flex justify-between text-slate-400">
+            <div className="flex justify-between text-gray-500">
               <span>Delivery Charges</span>
               <span className="text-emerald-400 font-bold">FREE</span>
             </div>
-            <div className="border-t border-slate-800 pt-2.5 flex justify-between items-center text-sm font-bold text-white">
+            <div className="border-t border-gray-100 pt-2.5 flex justify-between items-center text-sm font-bold text-gray-900">
               <span>Total Amount Payable</span>
               <span className="text-[#d4af37] text-lg font-black" data-testid="grand-total-price">₹{totalPrice}</span>
             </div>
@@ -339,7 +338,7 @@ const TiffinPlanDetailCheckout = () => {
         </button>
       </main>
 
-      <CustomerBottomNav />
+      
     </div>
   );
 };

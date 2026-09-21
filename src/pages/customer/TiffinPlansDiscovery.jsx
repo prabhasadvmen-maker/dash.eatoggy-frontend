@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getPublicTiffinPlansAPI } from '../../services/subscription/subscriptionService.js';
-import CustomerBottomNav from '../../components/customer/CustomerBottomNav.jsx';
+
 import {
   Calendar,
   Search,
@@ -62,38 +62,37 @@ const TiffinPlansDiscovery = () => {
   });
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col pb-20" data-testid="tiffin-plans-discovery-page">
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-slate-900 border-b border-slate-800 px-4 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/user/home')}
-            className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center hover:bg-slate-700 transition-colors cursor-pointer"
-            data-testid="tiffin-back-btn"
-          >
-            <ArrowLeft size={18} className="text-white" />
-          </button>
-          <div>
-            <h1 className="text-lg font-black text-white flex items-center gap-2">
-              <Calendar size={18} className="text-[#d4af37]" />
-              Tiffin Subscriptions
-            </h1>
-            <p className="text-xs text-slate-400">Home-style Daily Meals Scheduled for You</p>
-          </div>
-        </div>
-
-        <button
-          onClick={() => navigate('/user/subscriptions')}
-          className="px-3 py-1.5 bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#d4af37] font-bold rounded-full text-xs hover:bg-[#d4af37]/20 transition-all cursor-pointer flex items-center gap-1.5"
-          data-testid="my-subscriptions-btn"
-        >
-          <Sparkles size={14} />
-          My Subscriptions
-        </button>
-      </header>
-
+    <div className="space-y-6 max-w-7xl mx-auto pb-20">
       {/* Main Content */}
       <main className="flex-1 max-w-3xl mx-auto w-full p-4 space-y-5">
+        
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/user/home')}
+              className="w-10 h-10 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
+              data-testid="tiffin-back-btn"
+            >
+              <ArrowLeft size={18} className="text-gray-900" />
+            </button>
+            <div>
+              <h1 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                <Calendar size={18} className="text-[#d4af37]" />
+                Tiffin Subscriptions
+              </h1>
+              <p className="text-xs text-gray-500">Home-style Daily Meals Scheduled for You</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => navigate('/user/subscriptions')}
+            className="px-3 py-1.5 bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#d4af37] font-bold rounded-full text-xs hover:bg-[#d4af37]/20 transition-all cursor-pointer flex items-center gap-1.5"
+            data-testid="my-subscriptions-btn"
+          >
+            <Sparkles size={14} />
+            My Subscriptions
+          </button>
+        </div>
         {/* Search & Meal Type Filter */}
         <div className="space-y-3">
           <form onSubmit={handleSearchSubmit} className="relative">
@@ -102,10 +101,10 @@ const TiffinPlansDiscovery = () => {
               placeholder="Search tiffin plans or restaurants..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#d4af37]"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-100 rounded-2xl text-xs text-gray-900 placeholder-slate-500 focus:outline-none focus:border-[#d4af37]"
               data-testid="tiffin-search-input"
             />
-            <Search size={16} className="absolute left-3.5 top-3 text-slate-400" />
+            <Search size={16} className="absolute left-3.5 top-3 text-gray-500" />
           </form>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
@@ -116,7 +115,7 @@ const TiffinPlansDiscovery = () => {
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                   filterMealType === type
                     ? 'bg-[#d4af37] text-slate-950 shadow-md shadow-[#d4af37]/10'
-                    : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
+                    : 'bg-white border border-gray-100 text-gray-500 hover:text-gray-900'
                 }`}
                 data-testid={`filter-${type.toLowerCase()}`}
               >
@@ -138,11 +137,11 @@ const TiffinPlansDiscovery = () => {
             <p className="text-xs text-[#d4af37] font-bold">Finding available tiffin plans...</p>
           </div>
         ) : filteredPlans.length === 0 ? (
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center space-y-4 shadow-xl" data-testid="empty-tiffin-plans">
-            <Utensils size={44} className="text-slate-600 mx-auto" />
+          <div className="bg-white border border-gray-100 rounded-3xl p-8 text-center space-y-4 shadow-xl" data-testid="empty-tiffin-plans">
+            <Utensils size={44} className="text-gray-300 mx-auto" />
             <div className="space-y-1">
-              <h3 className="text-base font-bold text-white">No Tiffin Plans Found</h3>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              <h3 className="text-base font-bold text-gray-900">No Tiffin Plans Found</h3>
+              <p className="text-xs text-gray-500 max-w-sm mx-auto">
                 No active tiffin meal plans match your selection. Check back soon!
               </p>
             </div>
@@ -155,7 +154,7 @@ const TiffinPlansDiscovery = () => {
                 <div
                   key={plan._id}
                   onClick={() => navigate(`/user/tiffin-plans/${plan._id}`)}
-                  className="bg-slate-900 border border-slate-800 hover:border-[#d4af37]/50 rounded-3xl p-5 space-y-4 shadow-xl transition-all cursor-pointer group"
+                  className="bg-white border border-gray-100 hover:border-[#d4af37]/50 rounded-3xl p-5 space-y-4 shadow-xl transition-all cursor-pointer group"
                   data-testid={`tiffin-plan-card-${plan._id}`}
                 >
                   <div className="flex items-start justify-between">
@@ -174,37 +173,37 @@ const TiffinPlansDiscovery = () => {
                         )}
                       </div>
 
-                      <h2 className="text-base font-bold text-white group-hover:text-[#d4af37] transition-colors mt-2" data-testid="plan-name">
+                      <h2 className="text-base font-bold text-gray-900 group-hover:text-[#d4af37] transition-colors mt-2" data-testid="plan-name">
                         {plan.name || plan.planName}
                       </h2>
-                      <p className="text-xs text-slate-400 font-medium">
+                      <p className="text-xs text-gray-500 font-medium">
                         by {plan.restaurantId?.restaurantName || 'Gourmet Kitchen'}
                       </p>
                     </div>
 
                     <div className="text-right">
-                      <p className="text-[10px] text-slate-400 uppercase font-bold">Total Price</p>
+                      <p className="text-[10px] text-gray-500 uppercase font-bold">Total Price</p>
                       <p className="text-lg font-black text-[#d4af37]" data-testid="plan-total-price">
                         ₹{totalPrice}
                       </p>
-                      <p className="text-[10px] text-slate-400">
+                      <p className="text-[10px] text-gray-500">
                         ₹{plan.pricePerMeal}/meal
                       </p>
                     </div>
                   </div>
 
                   {plan.description && (
-                    <p className="text-xs text-slate-300 line-clamp-2">
+                    <p className="text-xs text-gray-700 line-clamp-2">
                       {plan.description}
                     </p>
                   )}
 
                   {plan.items && plan.items.length > 0 && (
-                    <div className="bg-slate-950/60 rounded-2xl p-3 border border-slate-800/80">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Includes Daily:</p>
+                    <div className="bg-transparent/60 rounded-2xl p-3 border border-gray-100/80">
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Includes Daily:</p>
                       <div className="flex flex-wrap gap-1.5">
                         {plan.items.map((item, idx) => (
-                          <span key={idx} className="px-2 py-0.5 bg-slate-800 text-slate-300 text-[11px] rounded-lg border border-slate-700">
+                          <span key={idx} className="px-2 py-0.5 bg-gray-50 text-gray-700 text-[11px] rounded-lg border border-gray-200">
                             {item.quantity}x {item.name}
                           </span>
                         ))}
@@ -212,8 +211,8 @@ const TiffinPlansDiscovery = () => {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between border-t border-slate-800/60 pt-3 text-xs">
-                    <div className="flex items-center gap-3 text-slate-400 text-[11px]">
+                  <div className="flex items-center justify-between border-t border-gray-100/60 pt-3 text-xs">
+                    <div className="flex items-center gap-3 text-gray-500 text-[11px]">
                       <span className="flex items-center gap-1">
                         <Clock size={12} /> Cutoff: {plan.cutoffTime || '09:00'}
                       </span>
@@ -233,7 +232,7 @@ const TiffinPlansDiscovery = () => {
         )}
       </main>
 
-      <CustomerBottomNav />
+      
     </div>
   );
 };
