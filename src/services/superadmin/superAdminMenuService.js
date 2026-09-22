@@ -12,10 +12,13 @@ const getSuperAdminHeaders = () => {
 // CATEGORY API
 // ==========================================
 
-export const getCategories = async (isActive = '', search = '') => {
+export const getCategories = async (params = {}) => {
   const query = new URLSearchParams();
-  if (isActive !== '') query.append('isActive', isActive);
-  if (search) query.append('search', search);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      query.append(key, value);
+    }
+  });
 
   const response = await fetch(`${API_BASE_URL}/api/super-admin/menu/categories?${query.toString()}`, {
     method: 'GET',
@@ -77,11 +80,13 @@ export const deleteCategory = async (id) => {
 // SUBCATEGORY API
 // ==========================================
 
-export const getSubcategories = async (categoryId = '', isActive = '', search = '') => {
+export const getSubcategories = async (params = {}) => {
   const query = new URLSearchParams();
-  if (categoryId) query.append('categoryId', categoryId);
-  if (isActive !== '') query.append('isActive', isActive);
-  if (search) query.append('search', search);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      query.append(key, value);
+    }
+  });
 
   const response = await fetch(`${API_BASE_URL}/api/super-admin/menu/subcategories?${query.toString()}`, {
     method: 'GET',

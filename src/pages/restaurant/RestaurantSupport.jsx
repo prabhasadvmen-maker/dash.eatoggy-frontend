@@ -1,30 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   HelpCircle,
   Plus,
   MessageSquare,
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
   Send,
   X,
   ShoppingBag,
-  ShieldCheck,
-  Search,
-  Filter
+  AlertTriangle
 } from 'lucide-react';
 import API_BASE_URL from '../../services/apiService';
+import DataTable from '../../components/common/Table/DataTable';
+import { useDataTableSync } from '../../hooks/useDataTableSync';
 
 const RestaurantSupport = () => {
+  const {
+    page, setPage,
+    limit, setLimit,
+    search, setSearch,
+    sortBy, sortOrder, setSort,
+    filters, setFilters,
+    handleClearFilters
+  } = useDataTableSync({
+    defaultSortBy: 'createdAt',
+    defaultSortOrder: 'desc'
+  });
+
   const [tickets, setTickets] = useState([]);
+  const [total, setTotal] = useState(0);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
   const [activeTicket, setActiveTicket] = useState(null);
   const [replyMessage, setReplyMessage] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [statusFilter, setStatusFilter] = useState('');
 
   // Form State
   const [subject, setSubject] = useState('');
@@ -34,41 +44,71 @@ const RestaurantSupport = () => {
   const [description, setDescription] = useState('');
   const [creating, setCreating] = useState(false);
 
-  useEffect(() => {
-    fetchTickets();
-    fetchOrders();
-  }, [statusFilter]);
-
-  const fetchTickets = async () => {
+  const fetchTickets = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('restaurant_token') || localStorage.getItem('token');
-      const query = statusFilter ? `?status=${statusFilter}` : '';
-      const res = await fetch(`${API_BASE_URL}/api/support/tickets/restaurant/my${query}`, {
+      
+      const queryParams = new URLSearchParams({
+        page,
+        limit,
+        sortBy,
+        sortOrder
+      });
+      
+      if (search) queryParams.append('search', search);
+      
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          queryParams.append(key, value);
+        }
+      });
+
+      const res = await fetch(`${API_BASE_URL}/api/support/tickets/restaurant/my?${queryParams.toString()}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
-      if (res.ok) {
+      if (res.ok && data.success) {
         setTickets(data.data || []);
+        if (data.meta && data.meta.pagination) {
+          setTotal(data.meta.pagination.total);
+        } else {
+          setTotal(data.data?.length || 0);
+        }
       } else {
         setError(data.message || 'Failed to fetch support tickets');
+        setTickets([]);
+        setTotal(0);
       }
     } catch (err) {
       setError('Network error while fetching tickets');
+      setTickets([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, limit, search, sortBy, sortOrder, filters]);
+
+  useEffect(() => {
+    fetchTickets();
+  }, [fetchTickets]);
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
 
   const fetchOrders = async () => {
     try {
       const token = localStorage.getItem('restaurant_token') || localStorage.getItem('token');
+      // For creating a ticket related to an order we might fetch last 20 recent orders, but this depends on endpoint.
+      // Leaving as is.
       const res = await fetch(`${API_BASE_URL}/api/restaurants/orders`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
       if (res.ok) {
-        setOrders(data.data || []);
+        // Just use the first 50 orders to prevent massive dropdowns if they don't paginate
+        setOrders(data.data?.slice(0, 50) || []);
       }
     } catch (err) {
       console.error('Failed to fetch orders for restaurant support context', err);
@@ -99,7 +139,7 @@ const RestaurantSupport = () => {
 
       const data = await res.json();
       if (res.ok) {
-        setTickets([data.data, ...tickets]);
+        fetchTickets();
         setShowCreateModal(false);
         setSubject('');
         setDescription('');
@@ -137,7 +177,7 @@ const RestaurantSupport = () => {
       const data = await res.json();
       if (res.ok) {
         setActiveTicket(data.data);
-        setTickets(tickets.map((t) => (t._id === data.data._id ? data.data : t)));
+        fetchTickets(); // refresh list to update counts or status if auto-updated
         setReplyMessage('');
       } else {
         alert(data.message || 'Failed to send reply');
@@ -160,140 +200,179 @@ const RestaurantSupport = () => {
     });
   };
 
+  const columns = [
+    {
+      key: 'ticketNumber',
+      label: 'Ticket #',
+      sortable: true,
+      render: (row) => (
+        <span className="font-bold text-slate-800 font-mono text-xs cursor-pointer hover:text-[#d4af37]" onClick={() => setActiveTicket(row)}>
+          {row.ticketNumber}
+        </span>
+      )
+    },
+    {
+      key: 'category',
+      label: 'Category',
+      sortable: true,
+      render: (row) => (
+        <span className="text-xs font-semibold text-slate-600">
+          {row.category.replace(/_/g, ' ')}
+        </span>
+      )
+    },
+    {
+      key: 'subject',
+      label: 'Subject',
+      sortable: true,
+      render: (row) => (
+        <span className="text-xs font-medium text-slate-800 max-w-xs truncate block cursor-pointer hover:text-[#d4af37]" onClick={() => setActiveTicket(row)}>
+          {row.subject}
+        </span>
+      )
+    },
+    {
+      key: 'priority',
+      label: 'Priority',
+      sortable: true,
+      align: 'center',
+      render: (row) => (
+        <span className={`text-xs font-bold ${row.priority === 'URGENT' ? 'text-red-600' : row.priority === 'HIGH' ? 'text-orange-500' : 'text-slate-600'}`}>
+          {row.priority}
+        </span>
+      )
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      align: 'center',
+      render: (row) => (
+        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+          row.status === 'OPEN'
+            ? 'bg-amber-100 text-amber-800'
+            : row.status === 'RESOLVED'
+            ? 'bg-emerald-100 text-emerald-800'
+            : 'bg-gray-100 text-gray-700'
+        }`}>
+          {row.status.replace(/_/g, ' ')}
+        </span>
+      )
+    },
+    {
+      key: 'actions',
+      label: 'Action',
+      align: 'right',
+      render: (row) => (
+        <button
+          onClick={() => setActiveTicket(row)}
+          className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold transition-colors cursor-pointer ${
+            activeTicket?._id === row._id ? 'bg-[#d4af37] text-slate-900' : 'bg-slate-800 text-white hover:bg-slate-700'
+          }`}
+        >
+          View Thread
+        </button>
+      )
+    }
+  ];
+
+  const filterConfig = [
+    {
+      key: 'status',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { label: 'All Statuses', value: '' },
+        { label: 'Open', value: 'OPEN' },
+        { label: 'In Progress', value: 'IN_PROGRESS' },
+        { label: 'Waiting for Partner', value: 'WAITING_FOR_PARTNER' },
+        { label: 'Resolved', value: 'RESOLVED' },
+        { label: 'Closed', value: 'CLOSED' }
+      ]
+    },
+    {
+      key: 'priority',
+      label: 'Priority',
+      type: 'select',
+      options: [
+        { label: 'All Priorities', value: '' },
+        { label: 'Low', value: 'LOW' },
+        { label: 'Medium', value: 'MEDIUM' },
+        { label: 'High', value: 'HIGH' },
+        { label: 'Urgent', value: 'URGENT' }
+      ]
+    }
+  ];
+
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto p-4 md:p-6">
       {/* Top Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Restaurant Partner Help & Support</h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <h1 className="text-3xl font-bold text-slate-800">Help & Support</h1>
+          <p className="text-slate-500 text-sm mt-1">
             Submit issues regarding order fulfillments, payouts, menus, or platform technical bugs
           </p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2.5 bg-[#d4af37] text-slate-900 hover:bg-[#c5a028] font-bold text-xs rounded-xl flex items-center gap-2 shadow-sm transition-colors"
+          className="px-4 py-2.5 bg-[#d4af37] text-slate-900 hover:bg-[#c5a028] font-bold text-sm rounded-xl flex items-center gap-2 shadow-sm transition-colors cursor-pointer"
         >
-          <Plus size={16} /> New Support Request
+          <Plus size={18} /> New Support Request
         </button>
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-xl flex items-center gap-3 text-xs font-semibold">
-          <AlertTriangle size={18} /> {error}
+        <div className="bg-red-50 text-red-600 p-4 rounded-xl flex items-center gap-3 text-sm font-semibold">
+          <AlertTriangle size={20} /> {error}
         </div>
       )}
-
-      {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-4 items-center">
-        <Filter size={16} className="text-gray-400" />
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none focus:ring-2 focus:ring-[#d4af37]"
-        >
-          <option value="">All Ticket Statuses</option>
-          <option value="OPEN">Open</option>
-          <option value="IN_PROGRESS">In Progress</option>
-          <option value="WAITING_FOR_PARTNER">Waiting for Partner</option>
-          <option value="RESOLVED">Resolved</option>
-          <option value="CLOSED">Closed</option>
-        </select>
-      </div>
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Tickets List Table */}
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-gray-600">
-              <thead className="bg-gray-50 border-b border-gray-100 text-gray-400 uppercase text-[11px] font-semibold">
-                <tr>
-                  <th className="px-6 py-3.5">Ticket #</th>
-                  <th className="px-6 py-3.5">Category</th>
-                  <th className="px-6 py-3.5">Subject</th>
-                  <th className="px-6 py-3.5 text-center">Priority</th>
-                  <th className="px-6 py-3.5 text-center">Status</th>
-                  <th className="px-6 py-3.5 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {loading ? (
-                  <tr>
-                    <td colSpan="6" className="px-6 py-8 text-center text-gray-400">
-                      Loading support tickets...
-                    </td>
-                  </tr>
-                ) : tickets.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="px-6 py-8 text-center text-gray-400">
-                      No support tickets found.
-                    </td>
-                  </tr>
-                ) : (
-                  tickets.map((t) => (
-                    <tr
-                      key={t._id}
-                      onClick={() => setActiveTicket(t)}
-                      className={`hover:bg-gray-50 cursor-pointer transition-colors ${
-                        activeTicket?._id === t._id ? 'bg-amber-50/40' : ''
-                      }`}
-                    >
-                      <td className="px-6 py-4 font-bold text-slate-800 font-mono text-xs">{t.ticketNumber}</td>
-                      <td className="px-6 py-4 text-xs font-semibold text-slate-600">
-                        {t.category.replace(/_/g, ' ')}
-                      </td>
-                      <td className="px-6 py-4 text-xs font-medium text-slate-800 max-w-xs truncate">
-                        {t.subject}
-                      </td>
-                      <td className="px-6 py-4 text-center font-bold text-xs">{t.priority}</td>
-                      <td className="px-6 py-4 text-center">
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                            t.status === 'OPEN'
-                              ? 'bg-amber-100 text-amber-800'
-                              : t.status === 'RESOLVED'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-gray-100 text-gray-700'
-                          }`}
-                        >
-                          {t.status.replace(/_/g, ' ')}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveTicket(t);
-                          }}
-                          className="px-3 py-1.5 bg-slate-800 text-white rounded-lg text-xs font-semibold hover:bg-slate-700"
-                        >
-                          View Thread
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            columns={columns}
+            data={tickets}
+            loading={loading}
+            emptyMessage="No support tickets found."
+            
+            search={{ value: search, placeholder: 'Search ticket # or subject...' }}
+            onSearchChange={setSearch}
+            
+            filterConfig={filterConfig}
+            filters={filters}
+            onFilterChange={setFilters}
+            onClearFilters={handleClearFilters}
+            
+            sorting={{ sortBy, sortOrder }}
+            onSortChange={setSort}
+
+            pagination={{ page, limit, total }}
+            onPageChange={setPage}
+            onLimitChange={setLimit}
+            
+            // Allow row selection highlight
+            rowClassName={(row) => activeTicket?._id === row._id ? 'bg-amber-50/40' : ''}
+          />
         </div>
 
         {/* Ticket Details & Chat Panel */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 flex flex-col justify-between min-h-[460px]">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[600px] sticky top-6">
           {activeTicket ? (
             <>
-              <div className="space-y-3">
-                <div className="flex justify-between items-start border-b border-gray-100 pb-3">
+              <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+                <div className="flex justify-between items-start border-b border-gray-100 pb-4">
                   <div>
-                    <span className="font-mono text-xs font-bold text-amber-600">{activeTicket.ticketNumber}</span>
-                    <h2 className="text-base font-bold text-slate-800 mt-0.5">{activeTicket.subject}</h2>
-                    <p className="text-xs text-slate-400">
-                      Category: {activeTicket.category.replace(/_/g, ' ')} | Priority: {activeTicket.priority}
+                    <span className="font-mono text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-100">{activeTicket.ticketNumber}</span>
+                    <h2 className="text-lg font-bold text-slate-800 mt-2">{activeTicket.subject}</h2>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {activeTicket.category.replace(/_/g, ' ')} &bull; {activeTicket.priority}
                     </p>
                   </div>
                   <span
-                    className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
                       activeTicket.status === 'OPEN'
                         ? 'bg-amber-100 text-amber-800'
                         : activeTicket.status === 'RESOLVED'
@@ -306,30 +385,30 @@ const RestaurantSupport = () => {
                 </div>
 
                 {activeTicket.orderId && (
-                  <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 text-xs flex items-center justify-between text-slate-600">
-                    <span className="flex items-center gap-1.5 font-medium">
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs flex items-center justify-between text-slate-600 shadow-inner">
+                    <span className="flex items-center gap-1.5 font-bold">
                       <ShoppingBag size={14} className="text-amber-600" /> Linked Order:
                     </span>
-                    <span className="font-mono font-bold text-slate-800">
+                    <span className="font-mono font-bold text-slate-800 bg-white px-2 py-1 rounded border border-gray-200">
                       {activeTicket.orderId.orderId || activeTicket.orderId}
                     </span>
                   </div>
                 )}
 
                 {/* Messages Thread */}
-                <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                <div className="space-y-4">
                   {(activeTicket.messages || []).map((msg, idx) => (
                     <div
                       key={idx}
-                      className={`p-3 rounded-xl text-xs space-y-1 ${
+                      className={`p-3.5 rounded-xl text-sm space-y-1.5 ${
                         msg.senderType === 'SUPER_ADMIN' || msg.senderType === 'SUPPORT_AGENT'
-                          ? 'bg-amber-50 text-slate-800 border border-amber-200/60 ml-3'
-                          : 'bg-slate-50 text-slate-700 border border-gray-100 mr-3'
+                          ? 'bg-amber-50 text-slate-800 border border-amber-200/60 ml-4 rounded-tl-none'
+                          : 'bg-slate-50 text-slate-700 border border-gray-100 mr-4 rounded-tr-none'
                       }`}
                     >
                       <div className="flex justify-between font-bold text-[10px] text-slate-400">
-                        <span>
-                          {msg.senderName} ({msg.senderType})
+                        <span className="text-slate-600 uppercase tracking-wide">
+                          {msg.senderName}
                         </span>
                         <span>{formatDate(msg.createdAt)}</span>
                       </div>
@@ -340,28 +419,30 @@ const RestaurantSupport = () => {
               </div>
 
               {/* Reply Form */}
-              <form onSubmit={handleSendReply} className="pt-3 border-t border-gray-100 space-y-2">
+              <form onSubmit={handleSendReply} className="pt-4 border-t border-gray-100 space-y-3 mt-auto">
                 <textarea
                   value={replyMessage}
                   onChange={(e) => setReplyMessage(e.target.value)}
                   placeholder="Type message to support officers..."
                   rows="3"
                   required
-                  className="w-full p-3 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#d4af37] outline-none resize-none"
+                  className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#d4af37] outline-none resize-none transition-all"
                 />
                 <button
                   type="submit"
                   disabled={sendingReply}
-                  className="w-full py-2.5 bg-[#d4af37] hover:bg-[#c5a028] text-slate-900 font-bold text-xs rounded-xl flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-3 bg-[#d4af37] hover:bg-[#c5a028] text-slate-900 font-bold text-sm rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
                 >
-                  <Send size={14} /> Send Message to Helpdesk
+                  <Send size={16} /> Send Message to Helpdesk
                 </button>
               </form>
             </>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400 space-y-2">
-              <MessageSquare size={36} className="text-slate-300" />
-              <p className="text-xs font-semibold">Select a ticket to inspect conversation thread and reply</p>
+            <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400 space-y-3">
+              <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-2">
+                <MessageSquare size={28} className="text-gray-300" />
+              </div>
+              <p className="text-sm font-semibold text-slate-500">Select a ticket to inspect conversation thread and reply</p>
             </div>
           )}
         </div>
@@ -369,57 +450,59 @@ const RestaurantSupport = () => {
 
       {/* Create Ticket Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 relative shadow-xl border border-gray-100">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-5 relative shadow-2xl border border-gray-100">
             <button
               onClick={() => setShowCreateModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1"
+              className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
             >
               <X size={20} />
             </button>
 
-            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <HelpCircle className="text-[#d4af37]" size={20} /> Create Support Request
+            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <HelpCircle className="text-[#d4af37]" size={24} /> Create Support Request
             </h2>
 
-            <form onSubmit={handleCreateTicket} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-slate-600 font-semibold mb-1">Category</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#d4af37]"
-                >
-                  <option value="RESTAURANT">Restaurant Operations</option>
-                  <option value="ORDER_ISSUE">Order Fulfillment</option>
-                  <option value="PAYMENT">Payouts & Settlements</option>
-                  <option value="SUBSCRIPTION">Tiffin Subscriptions</option>
-                  <option value="TECHNICAL">Menu / Technical Bug</option>
-                  <option value="OTHER">Other Query</option>
-                </select>
-              </div>
+            <form onSubmit={handleCreateTicket} className="space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1.5">Category</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#d4af37] transition-all"
+                  >
+                    <option value="RESTAURANT">Restaurant Operations</option>
+                    <option value="ORDER_ISSUE">Order Fulfillment</option>
+                    <option value="PAYMENT">Payouts & Settlements</option>
+                    <option value="SUBSCRIPTION">Tiffin Subscriptions</option>
+                    <option value="TECHNICAL">Menu / Technical Bug</option>
+                    <option value="OTHER">Other Query</option>
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-slate-600 font-semibold mb-1">Priority</label>
-                <select
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#d4af37]"
-                >
-                  <option value="LOW">Low</option>
-                  <option value="MEDIUM">Medium</option>
-                  <option value="HIGH">High</option>
-                  <option value="URGENT">Urgent</option>
-                </select>
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1.5">Priority</label>
+                  <select
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value)}
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#d4af37] transition-all"
+                  >
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                    <option value="URGENT">Urgent</option>
+                  </select>
+                </div>
               </div>
 
               {orders.length > 0 && (
                 <div>
-                  <label className="block text-slate-600 font-semibold mb-1">Linked Order (Optional)</label>
+                  <label className="block text-slate-700 font-bold mb-1.5">Linked Order (Optional)</label>
                   <select
                     value={orderId}
                     onChange={(e) => setOrderId(e.target.value)}
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#d4af37]"
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#d4af37] transition-all"
                   >
                     <option value="">None / Platform General</option>
                     {orders.map((o) => (
@@ -432,36 +515,38 @@ const RestaurantSupport = () => {
               )}
 
               <div>
-                <label className="block text-slate-600 font-semibold mb-1">Subject</label>
+                <label className="block text-slate-700 font-bold mb-1.5">Subject</label>
                 <input
                   type="text"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="Summary of query..."
                   required
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#d4af37]"
+                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#d4af37] transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-600 font-semibold mb-1">Description</label>
+                <label className="block text-slate-700 font-bold mb-1.5">Description</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Detailed description of problem..."
-                  rows="3"
+                  rows="4"
                   required
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#d4af37] resize-none"
+                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#d4af37] resize-none transition-all"
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={creating}
-                className="w-full py-2.5 bg-[#d4af37] hover:bg-[#c5a028] text-slate-900 font-bold rounded-xl transition-colors disabled:opacity-50 mt-2"
-              >
-                {creating ? 'Submitting Request...' : 'Submit Support Request'}
-              </button>
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={creating}
+                  className="w-full py-3 bg-[#d4af37] hover:bg-[#c5a028] text-slate-900 font-bold rounded-xl transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
+                >
+                  {creating ? 'Submitting Request...' : 'Submit Support Request'}
+                </button>
+              </div>
             </form>
           </div>
         </div>

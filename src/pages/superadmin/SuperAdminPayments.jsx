@@ -1,37 +1,66 @@
-import React, { useState, useEffect } from 'react';
-import { Search, ShieldAlert, Banknote, Undo2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ShieldAlert, Banknote, Undo2 } from 'lucide-react';
 import API_BASE_URL from '../../services/apiService';
+import DataTable from '../../components/common/Table/DataTable';
+import { useDataTableSync } from '../../hooks/useDataTableSync';
 
 const SuperAdminPayments = () => {
+  const {
+    page, setPage,
+    limit, setLimit,
+    search, setSearch,
+    sortBy, sortOrder, setSort,
+    filters, setFilters,
+    handleClearFilters
+  } = useDataTableSync({
+    defaultSortBy: 'createdAt',
+    defaultSortOrder: 'desc'
+  });
+
   const [payments, setPayments] = useState([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [purposeFilter, setPurposeFilter] = useState('');
+  
   const [refundModal, setRefundModal] = useState({ open: false, payment: null, reason: '' });
   const [refunding, setRefunding] = useState(false);
 
-  useEffect(() => {
-    fetchPayments();
-  }, [search, statusFilter, purposeFilter]);
-
-  const fetchPayments = async () => {
+  const fetchPayments = useCallback(async () => {
     try {
       setLoading(true);
-      const query = new URLSearchParams();
-      if (search) query.append('search', search);
-      if (statusFilter) query.append('status', statusFilter);
-      if (purposeFilter) query.append('purpose', purposeFilter);
+      setError('');
+      
+      const queryParams = new URLSearchParams({
+        page,
+        limit,
+        sortBy,
+        sortOrder
+      });
+      
+      if (search) queryParams.append('search', search);
+      
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          queryParams.append(key, value);
+        }
+      });
 
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/payments?${query.toString()}`, {
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/payments?${queryParams.toString()}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('superadmin_token')}`
         }
       });
       const data = await response.json();
+      
       if (response.ok) {
         setPayments(data.data || []);
+        if (data.meta && data.meta.pagination) {
+          setTotal(data.meta.pagination.total);
+        } else if (data.pagination) {
+          setTotal(data.pagination.total);
+        } else {
+          setTotal(data.data?.length || 0);
+        }
       } else {
         setError(data.message || 'Failed to fetch payments');
       }
@@ -40,7 +69,11 @@ const SuperAdminPayments = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, limit, search, sortBy, sortOrder, filters]);
+
+  useEffect(() => {
+    fetchPayments();
+  }, [fetchPayments]);
 
   const handleInitiateRefund = async (e) => {
     e.preventDefault();
@@ -89,9 +122,104 @@ const SuperAdminPayments = () => {
     );
   };
 
+  const columns = [
+    {
+      key: 'razorpayOrderId',
+      label: 'Transaction Details',
+      sortable: false,
+      render: (row) => (
+        <div>
+          <div>Order ID: <span className="font-mono text-xs text-gray-600">{row.razorpayOrderId}</span></div>
+          {row.razorpayPaymentId && <div className="text-xs text-gray-400 font-mono">Payment ID: {row.razorpayPaymentId}</div>}
+        </div>
+      )
+    },
+    {
+      key: 'customer',
+      label: 'Customer',
+      sortable: false,
+      render: (row) => (
+        <div>
+          <div className="font-medium text-slate-700">{row.customer?.name || 'Customer'}</div>
+          <div className="text-xs text-gray-400">{row.customer?.mobile}</div>
+        </div>
+      )
+    },
+    {
+      key: 'purpose',
+      label: 'Purpose',
+      sortable: false,
+      render: (row) => (
+        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-slate-700">
+          {row.purpose}
+        </span>
+      )
+    },
+    {
+      key: 'amount',
+      label: 'Amount',
+      sortable: true,
+      align: 'center',
+      render: (row) => <span className="font-bold text-slate-800">₹{row.amount}</span>
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      align: 'center',
+      render: (row) => getStatusBadge(row.status)
+    },
+    {
+      key: 'createdAt',
+      label: 'Date',
+      sortable: true,
+      render: (row) => <span className="text-slate-400 font-medium whitespace-nowrap">{formatDate(row.createdAt)}</span>
+    },
+    {
+      key: 'actions',
+      label: 'Action',
+      align: 'right',
+      render: (row) => (
+        <div className="flex justify-end">
+          {row.status === 'PAID' && (
+            <button
+              onClick={() => setRefundModal({ open: true, payment: row, reason: '' })}
+              className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-800 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+            >
+              <Undo2 size={14} /> Refund
+            </button>
+          )}
+        </div>
+      )
+    }
+  ];
+
+  const filterConfig = [
+    {
+      key: 'purpose',
+      label: 'Purpose',
+      type: 'select',
+      options: [
+        { label: 'Order Payment', value: 'ORDER_PAYMENT' },
+        { label: 'Subscription Payment', value: 'SUBSCRIPTION_PAYMENT' },
+        { label: 'Restaurant Onboarding', value: 'RESTAURANT_ONBOARDING' }
+      ]
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { label: 'Paid', value: 'PAID' },
+        { label: 'Pending', value: 'PENDING' },
+        { label: 'Refunded', value: 'REFUNDED' },
+        { label: 'Failed', value: 'FAILED' }
+      ]
+    }
+  ];
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Master Payments & Transactions</h1>
@@ -106,116 +234,32 @@ const SuperAdminPayments = () => {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 justify-between items-center">
-        <div className="relative w-full md:w-80">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder="Search Razorpay Order ID / Payment ID..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#d4af37] focus:border-transparent outline-none"
-          />
-        </div>
+      <DataTable
+        columns={columns}
+        data={payments}
+        loading={loading}
+        emptyMessage="No payment records found matching your criteria."
+        
+        search={{ value: search, placeholder: 'Search Razorpay Order ID / Payment ID...' }}
+        onSearchChange={setSearch}
+        
+        filterConfig={filterConfig}
+        filters={filters}
+        onFilterChange={setFilters}
+        onClearFilters={handleClearFilters}
+        
+        sorting={{ sortBy, sortOrder }}
+        onSortChange={setSort}
 
-        <div className="flex flex-wrap gap-3 w-full md:w-auto">
-          <select
-            value={purposeFilter}
-            onChange={(e) => setPurposeFilter(e.target.value)}
-            className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#d4af37] outline-none"
-          >
-            <option value="">All Purposes</option>
-            <option value="ORDER_PAYMENT">Order Payment</option>
-            <option value="SUBSCRIPTION_PAYMENT">Subscription Payment</option>
-            <option value="RESTAURANT_ONBOARDING">Restaurant Onboarding</option>
-          </select>
-
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#d4af37] outline-none"
-          >
-            <option value="">All Statuses</option>
-            <option value="PAID">Paid</option>
-            <option value="PENDING">Pending</option>
-            <option value="REFUNDED">Refunded</option>
-            <option value="FAILED">Failed</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-600">
-            <thead className="bg-gray-50 border-b border-gray-100 text-gray-400 uppercase text-xs font-semibold">
-              <tr>
-                <th className="px-6 py-4">Transaction Details</th>
-                <th className="px-6 py-4">Customer</th>
-                <th className="px-6 py-4">Purpose</th>
-                <th className="px-6 py-4 text-center">Amount</th>
-                <th className="px-6 py-4 text-center">Status</th>
-                <th className="px-6 py-4">Date</th>
-                <th className="px-6 py-4 text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {loading ? (
-                <tr>
-                  <td colSpan="7" className="px-6 py-8 text-center text-gray-400">Loading payments...</td>
-                </tr>
-              ) : payments.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="px-6 py-8 text-center text-gray-400">No payment records found.</td>
-                </tr>
-              ) : (
-                payments.map((p) => (
-                  <tr key={p._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-slate-800">
-                      <div>Order ID: <span className="font-mono text-xs text-gray-600">{p.razorpayOrderId}</span></div>
-                      {p.razorpayPaymentId && <div className="text-xs text-gray-400 font-mono">Payment ID: {p.razorpayPaymentId}</div>}
-                    </td>
-                    <td className="px-6 py-4 font-medium text-slate-700">
-                      {p.customer?.name || 'Customer'}
-                      <div className="text-xs text-gray-400">{p.customer?.mobile}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-slate-700">
-                        {p.purpose}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center font-bold text-slate-800">
-                      ₹{p.amount}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      {getStatusBadge(p.status)}
-                    </td>
-                    <td className="px-6 py-4 text-slate-400 font-medium whitespace-nowrap">
-                      {formatDate(p.createdAt)}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      {p.status === 'PAID' && (
-                        <button
-                          onClick={() => setRefundModal({ open: true, payment: p, reason: '' })}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-800 rounded-lg text-xs font-semibold transition-colors"
-                        >
-                          <Undo2 size={14} /> Refund
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+        pagination={{ page, limit, total }}
+        onPageChange={setPage}
+        onLimitChange={setLimit}
+      />
 
       {/* Refund Modal */}
       {refundModal.open && (
         <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden p-6 space-y-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden p-6 space-y-4 animate-fadeIn">
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
               <Undo2 className="text-purple-600" size={20} /> Initiate Refund
             </h2>
@@ -240,14 +284,14 @@ const SuperAdminPayments = () => {
                 <button
                   type="button"
                   onClick={() => setRefundModal({ open: false, payment: null, reason: '' })}
-                  className="flex-1 py-2.5 border border-gray-200 text-gray-700 font-bold text-xs rounded-xl hover:bg-gray-50"
+                  className="flex-1 py-2.5 border border-gray-200 text-gray-700 font-bold text-xs rounded-xl hover:bg-gray-50 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={refunding}
-                  className="flex-1 py-2.5 bg-purple-600 text-white font-bold text-xs rounded-xl hover:bg-purple-700 disabled:opacity-50"
+                  className="flex-1 py-2.5 bg-purple-600 text-white font-bold text-xs rounded-xl hover:bg-purple-700 disabled:opacity-50 cursor-pointer"
                 >
                   {refunding ? 'Processing...' : 'Confirm Refund'}
                 </button>

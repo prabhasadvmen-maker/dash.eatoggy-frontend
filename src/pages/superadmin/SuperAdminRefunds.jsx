@@ -1,27 +1,56 @@
-import React, { useState, useEffect } from 'react';
-import { Search, ShieldAlert, Undo2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ShieldAlert } from 'lucide-react';
 import API_BASE_URL from '../../services/apiService';
+import DataTable from '../../components/common/Table/DataTable';
+import { useDataTableSync } from '../../hooks/useDataTableSync';
 
 const SuperAdminRefunds = () => {
+  const {
+    page, setPage,
+    limit, setLimit,
+    search, setSearch,
+    sortBy, sortOrder, setSort
+  } = useDataTableSync({
+    defaultSortBy: 'createdAt',
+    defaultSortOrder: 'desc'
+  });
+
   const [payments, setPayments] = useState([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchRefunds();
-  }, []);
-
-  const fetchRefunds = async () => {
+  const fetchRefunds = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/payments?status=REFUNDED`, {
+      setError('');
+      
+      const queryParams = new URLSearchParams({
+        page,
+        limit,
+        sortBy,
+        sortOrder,
+        status: 'REFUNDED' // Hardcode status to REFUNDED for this screen
+      });
+      
+      if (search) queryParams.append('search', search);
+
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/payments?${queryParams.toString()}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('superadmin_token')}`
         }
       });
       const data = await response.json();
+      
       if (response.ok) {
         setPayments(data.data || []);
+        if (data.meta && data.meta.pagination) {
+          setTotal(data.meta.pagination.total);
+        } else if (data.pagination) {
+          setTotal(data.pagination.total);
+        } else {
+          setTotal(data.data?.length || 0);
+        }
       } else {
         setError(data.message || 'Failed to fetch refunds');
       }
@@ -30,12 +59,72 @@ const SuperAdminRefunds = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, limit, search, sortBy, sortOrder]);
+
+  useEffect(() => {
+    fetchRefunds();
+  }, [fetchRefunds]);
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
+
+  const columns = [
+    {
+      key: 'razorpayOrderId',
+      label: 'Transaction / Order',
+      sortable: false,
+      render: (row) => (
+        <div>
+          <div>Order ID: <span className="font-mono text-xs text-gray-600">{row.razorpayOrderId}</span></div>
+          {row.refundDetails?.refundId && <div className="text-xs text-purple-600 font-mono">Refund ID: {row.refundDetails?.refundId}</div>}
+        </div>
+      )
+    },
+    {
+      key: 'customer',
+      label: 'Customer',
+      sortable: false,
+      render: (row) => (
+        <div>
+          <div className="font-medium text-slate-700">{row.customer?.name || 'Customer'}</div>
+          <div className="text-xs text-gray-400">{row.customer?.mobile}</div>
+        </div>
+      )
+    },
+    {
+      key: 'refundDetails.reason',
+      label: 'Refund Reason',
+      sortable: false,
+      render: (row) => (
+        <span className="text-slate-600 font-medium">
+          {row.refundDetails?.reason || 'Admin initiated refund'}
+        </span>
+      )
+    },
+    {
+      key: 'refundDetails.refundAmount',
+      label: 'Amount',
+      sortable: false,
+      align: 'center',
+      render: (row) => (
+        <span className="font-bold text-purple-700">
+          ₹{row.refundDetails?.refundAmount || row.amount}
+        </span>
+      )
+    },
+    {
+      key: 'refundDetails.refundedAt',
+      label: 'Refunded Date',
+      sortable: true, // Note: sort by refundedAt or updatedAt might need proper backend mapping if nested sort is used. Since we just pass sortBy to query builder, if it allows it it will sort, if not default to allowed fields
+      render: (row) => (
+        <span className="text-slate-400 font-medium whitespace-nowrap">
+          {formatDate(row.refundDetails?.refundedAt || row.updatedAt)}
+        </span>
+      )
+    }
+  ];
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -53,54 +142,22 @@ const SuperAdminRefunds = () => {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-600">
-            <thead className="bg-gray-50 border-b border-gray-100 text-gray-400 uppercase text-xs font-semibold">
-              <tr>
-                <th className="px-6 py-4">Transaction / Order</th>
-                <th className="px-6 py-4">Customer</th>
-                <th className="px-6 py-4">Refund Reason</th>
-                <th className="px-6 py-4 text-center">Amount</th>
-                <th className="px-6 py-4">Refunded Date</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {loading ? (
-                <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-400">Loading refunds...</td>
-                </tr>
-              ) : payments.length === 0 ? (
-                <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-400">No refunded records found.</td>
-                </tr>
-              ) : (
-                payments.map((p) => (
-                  <tr key={p._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-slate-800">
-                      <div>Order ID: <span className="font-mono text-xs text-gray-600">{p.razorpayOrderId}</span></div>
-                      {p.refundDetails?.refundId && <div className="text-xs text-purple-600 font-mono">Refund ID: {p.refundDetails?.refundId}</div>}
-                    </td>
-                    <td className="px-6 py-4 font-medium text-slate-700">
-                      {p.customer?.name || 'Customer'}
-                      <div className="text-xs text-gray-400">{p.customer?.mobile}</div>
-                    </td>
-                    <td className="px-6 py-4 text-slate-600 font-medium">
-                      {p.refundDetails?.reason || 'Admin initiated refund'}
-                    </td>
-                    <td className="px-6 py-4 text-center font-bold text-purple-700">
-                      ₹{p.refundDetails?.refundAmount || p.amount}
-                    </td>
-                    <td className="px-6 py-4 text-slate-400 font-medium whitespace-nowrap">
-                      {formatDate(p.refundDetails?.refundedAt || p.updatedAt)}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable
+        columns={columns}
+        data={payments}
+        loading={loading}
+        emptyMessage="No refunded records found."
+        
+        search={{ value: search, placeholder: 'Search Razorpay Order ID / Payment ID...' }}
+        onSearchChange={setSearch}
+        
+        sorting={{ sortBy, sortOrder }}
+        onSortChange={setSort}
+
+        pagination={{ page, limit, total }}
+        onPageChange={setPage}
+        onLimitChange={setLimit}
+      />
     </div>
   );
 };

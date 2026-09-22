@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   getDeliveryPartners,
   getDeliveryPartnerById,
@@ -12,15 +12,30 @@ import {
   CheckCircle2, XCircle
 } from 'lucide-react';
 import {
-  Button, Input, Modal, ConfirmModal, DataTable, StatusBadge,
-  Card, Alert, PageHeader, SearchInput, Spinner
+  Button, Input, Modal, DataTable, StatusBadge,
+  Alert, PageHeader, Spinner
 } from '../../components/common';
+import { useDataTableSync } from '../../hooks/useDataTableSync';
 
 const DeliveryPartners = () => {
+  const {
+    page, setPage,
+    limit, setLimit,
+    search, setSearch,
+    sortBy, sortOrder, setSort,
+    filters, setFilters,
+    handleClearFilters
+  } = useDataTableSync({
+    defaultSortBy: 'createdAt',
+    defaultSortOrder: 'desc'
+  });
+
   const [partners, setPartners] = useState([]);
+  const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState('PENDING_REVIEW');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [statusCounts, setStatusCounts] = useState({
+    ALL: 0, PENDING_REVIEW: 0, APPROVED: 0, REJECTED: 0
+  });
 
   // Fee state
   const [fee, setFee] = useState({ amount: 499, currency: 'INR' });
@@ -38,10 +53,7 @@ const DeliveryPartners = () => {
 
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  useEffect(() => {
-    fetchFeeSetting();
-    fetchPartners();
-  }, [filterStatus]);
+  const activeTab = filters.onboardingStatus || filters.status || 'PENDING_REVIEW';
 
   const fetchFeeSetting = async () => {
     try {
@@ -55,23 +67,56 @@ const DeliveryPartners = () => {
     }
   };
 
-  const fetchPartners = async () => {
+  const fetchPartners = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getDeliveryPartners(filterStatus, searchQuery);
-      if (res.ok && res.data?.data) {
-        setPartners(res.data.data.partners || (Array.isArray(res.data.data) ? res.data.data : []));
+      const queryParams = {
+        page,
+        limit,
+        sortBy,
+        sortOrder,
+        search,
+        onboardingStatus: activeTab === 'ALL' ? '' : activeTab,
+        ...filters
+      };
+
+      const res = await getDeliveryPartners(queryParams);
+      if (res.ok && res.data) {
+        const rawPartners = res.data.partners || res.data.data?.partners || (Array.isArray(res.data.data) ? res.data.data : []);
+        setPartners(rawPartners);
+        const total = res.data.pagination?.total || res.data.data?.total || rawPartners.length;
+        setTotalItems(total);
+        if (res.data.statusCounts) {
+          setStatusCounts(res.data.statusCounts);
+        } else if (res.data.meta?.statusCounts) {
+          setStatusCounts(res.data.meta.statusCounts);
+        }
       }
     } catch (err) {
       setMessage({ type: 'error', text: 'Failed to fetch delivery partners' });
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, limit, search, sortBy, sortOrder, filters, activeTab]);
 
-  const handleSearchSubmit = (e) => {
-    if (e) e.preventDefault();
+  useEffect(() => {
+    fetchFeeSetting();
+  }, []);
+
+  useEffect(() => {
     fetchPartners();
+  }, [fetchPartners]);
+
+  const handleTabChange = (statusKey) => {
+    setPage(1);
+    if (statusKey === 'ALL') {
+      const newFilters = { ...filters };
+      delete newFilters.onboardingStatus;
+      delete newFilters.status;
+      setFilters(newFilters);
+    } else {
+      setFilters({ ...filters, onboardingStatus: statusKey });
+    }
   };
 
   const handleUpdateFee = async (e) => {
@@ -167,11 +212,11 @@ const DeliveryPartners = () => {
     }
   };
 
-  // Define columns for generic DataTable component with high contrast light theme typography
   const columns = [
     {
-      key: 'partner',
+      key: 'fullName',
       label: 'Partner',
+      sortable: true,
       render: (row) => (
         <div>
           <div className="font-bold text-slate-900 text-sm">{row.fullName || 'Name Pending'}</div>
@@ -182,6 +227,7 @@ const DeliveryPartners = () => {
     {
       key: 'city',
       label: 'City / Zone',
+      sortable: true,
       render: (row) => (
         <div>
           <div className="font-semibold text-slate-800 text-xs">{row.city || '-'}</div>
@@ -192,6 +238,7 @@ const DeliveryPartners = () => {
     {
       key: 'vehicleType',
       label: 'Vehicle',
+      sortable: true,
       render: (row) => (
         <span className="px-2.5 py-1 bg-amber-50 border border-[#d4af37] text-[#a58523] rounded-lg font-bold text-xs">
           {row.vehicleType || 'Bike'}
@@ -201,11 +248,13 @@ const DeliveryPartners = () => {
     {
       key: 'onboardingStatus',
       label: 'Onboarding Status',
+      sortable: true,
       render: (row) => <StatusBadge status={row.onboardingStatus} showIcon />
     },
     {
       key: 'createdAt',
       label: 'Registered Date',
+      sortable: true,
       render: (row) => (
         <span className="text-slate-600 font-medium text-xs">
           {new Date(row.createdAt).toLocaleDateString('en-GB')}
@@ -216,6 +265,7 @@ const DeliveryPartners = () => {
       key: 'actions',
       label: 'Actions',
       align: 'right',
+      sortable: false,
       render: (row) => (
         <Button
           type="button"
@@ -224,11 +274,26 @@ const DeliveryPartners = () => {
           variant="outline"
           size="sm"
           icon={Eye}
-          className="ml-auto"
+          className="ml-auto cursor-pointer"
         >
           View Details
         </Button>
       )
+    }
+  ];
+
+  const filterConfig = [
+    {
+      key: 'vehicleType',
+      label: 'Vehicle Type',
+      type: 'select',
+      options: [
+        { label: 'All Vehicles', value: '' },
+        { label: 'Bike', value: 'Bike' },
+        { label: 'Scooter', value: 'Scooter' },
+        { label: 'EV Bike', value: 'EV Bike' },
+        { label: 'Bicycle', value: 'Bicycle' }
+      ]
     }
   ];
 
@@ -260,14 +325,14 @@ const DeliveryPartners = () => {
                     type="submit"
                     id="superadmin-fee-save-btn"
                     disabled={feeUpdating}
-                    className="p-1.5 bg-[#d4af37] text-white rounded-lg hover:bg-[#a58523] transition-all shadow-sm"
+                    className="p-1.5 bg-[#d4af37] text-white rounded-lg hover:bg-[#a58523] transition-all shadow-sm cursor-pointer"
                   >
                     <Save className="w-4 h-4" />
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditingFee(false)}
-                    className="p-1.5 text-slate-400 hover:text-slate-600"
+                    className="p-1.5 text-slate-400 hover:text-slate-600 cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -279,7 +344,7 @@ const DeliveryPartners = () => {
                     type="button"
                     id="superadmin-edit-fee-btn"
                     onClick={() => setEditingFee(true)}
-                    className="p-1 text-slate-400 hover:text-[#a58523] transition-all"
+                    className="p-1 text-slate-400 hover:text-[#a58523] transition-all cursor-pointer"
                     title="Edit Onboarding Fee"
                   >
                     <Edit3 className="w-4 h-4" />
@@ -301,43 +366,77 @@ const DeliveryPartners = () => {
         </Alert>
       )}
 
-      {/* Filters & Search Bar */}
-      <Card padding="sm">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0 custom-scrollbar">
-            {['PENDING_REVIEW', 'APPROVED', 'REJECTED', 'ALL'].map((st) => (
-              <button
-                key={st}
-                id={`filter-status-${st.toLowerCase()}`}
-                onClick={() => setFilterStatus(st)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shadow-sm ${
-                  filterStatus === st
-                    ? 'bg-amber-50 border border-[#d4af37] text-[#a58523]'
-                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                {st === 'ALL' ? 'ALL STATUS' : st}
-              </button>
-            ))}
-          </div>
+      {/* Tabs Header */}
+      <div className="flex items-center gap-2 border-b border-gray-200 overflow-x-auto pb-1">
+        <button
+          onClick={() => handleTabChange('PENDING_REVIEW')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
+            activeTab === 'PENDING_REVIEW'
+              ? 'border-[#d4af37] text-gray-900 font-bold'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          PENDING_REVIEW ({statusCounts.PENDING_REVIEW || 0})
+        </button>
+        <button
+          onClick={() => handleTabChange('APPROVED')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
+            activeTab === 'APPROVED'
+              ? 'border-emerald-500 text-emerald-600 font-bold'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          APPROVED ({statusCounts.APPROVED || 0})
+        </button>
+        <button
+          onClick={() => handleTabChange('REJECTED')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
+            activeTab === 'REJECTED'
+              ? 'border-red-500 text-red-600 font-bold'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          REJECTED ({statusCounts.REJECTED || 0})
+        </button>
+        <button
+          onClick={() => handleTabChange('ALL')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
+            activeTab === 'ALL'
+              ? 'border-amber-500 text-amber-600 font-bold'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          ALL STATUS ({statusCounts.ALL || 0})
+        </button>
+      </div>
 
-          <SearchInput
-            id="superadmin-search-partners"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onSubmit={handleSearchSubmit}
-            placeholder="Search mobile, name, city..."
-            className="w-full sm:w-72"
-          />
-        </div>
-      </Card>
-
-      {/* Generic Reusable DataTable */}
+      {/* Generic Reusable Server-Side DataTable */}
       <DataTable
         columns={columns}
         data={partners}
         loading={loading}
-        emptyMessage={`No delivery partners found for filter ${filterStatus}.`}
+        emptyMessage="No delivery partners found matching the selected criteria."
+        pagination={{
+          page,
+          limit,
+          total: totalItems
+        }}
+        onPageChange={setPage}
+        onLimitChange={setLimit}
+        search={{
+          value: search,
+          placeholder: "Search mobile, name, city..."
+        }}
+        onSearchChange={setSearch}
+        filterConfig={filterConfig}
+        filters={filters}
+        onFilterChange={setFilters}
+        onClearFilters={handleClearFilters}
+        sorting={{
+          sortBy,
+          sortOrder
+        }}
+        onSortChange={setSort}
       />
 
       {/* Partner Details Modal */}
@@ -521,7 +620,7 @@ const DeliveryPartners = () => {
         ) : null}
       </Modal>
 
-      {/* Reject Reason Modal using common Modal */}
+      {/* Reject Reason Modal */}
       <Modal
         open={rejectModalOpen}
         onClose={() => setRejectModalOpen(false)}

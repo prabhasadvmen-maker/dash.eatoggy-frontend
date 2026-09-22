@@ -4,9 +4,9 @@ import { getRestaurantHeaders } from './restaurantAuthService.js';
 /**
  * Get Restaurant Orders List (with optional status filter)
  */
-export const getRestaurantOrdersAPI = async (status = null) => {
+export const getRestaurantOrdersAPI = async (params = '') => {
   const headers = await getRestaurantHeaders();
-  const queryParam = status && status !== 'ALL' ? `?status=${status}` : '';
+  const queryParam = params && !params.startsWith('?') ? `?${params}` : params;
   const response = await fetch(`${API_BASE_URL}/api/restaurant-admin/orders${queryParam}`, {
     method: 'GET',
     headers

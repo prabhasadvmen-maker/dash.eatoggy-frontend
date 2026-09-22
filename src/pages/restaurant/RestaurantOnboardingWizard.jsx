@@ -59,9 +59,9 @@ const RestaurantOnboardingWizard = () => {
   });
 
   const [hygieneFiles, setHygieneFiles] = useState({
-    mainPrepStation: null,
-    storageAndFridge: null,
-    dishwashingArea: null
+    mainPrepStation: [],
+    storageAndFridge: [],
+    dishwashingArea: []
   });
 
   const [idBankData, setIdBankData] = useState({
@@ -186,7 +186,7 @@ const RestaurantOnboardingWizard = () => {
     setError('');
     setSuccess('');
 
-    if (!hygieneFiles.mainPrepStation && !partner?.kitchenHygieneProof?.mainPrepStation?.url) {
+    if (hygieneFiles.mainPrepStation.length === 0 && (!partner?.kitchenHygieneProof?.mainPrepStation || partner.kitchenHygieneProof.mainPrepStation.length === 0)) {
       setError('Please upload Main Prep Station media');
       return;
     }
@@ -194,9 +194,15 @@ const RestaurantOnboardingWizard = () => {
     setActionLoading(true);
     try {
       const formData = new FormData();
-      if (hygieneFiles.mainPrepStation) formData.append('mainPrepStation', hygieneFiles.mainPrepStation);
-      if (hygieneFiles.storageAndFridge) formData.append('storageAndFridge', hygieneFiles.storageAndFridge);
-      if (hygieneFiles.dishwashingArea) formData.append('dishwashingArea', hygieneFiles.dishwashingArea);
+      if (hygieneFiles.mainPrepStation.length > 0) {
+        hygieneFiles.mainPrepStation.forEach(file => formData.append('mainPrepStation', file));
+      }
+      if (hygieneFiles.storageAndFridge.length > 0) {
+        hygieneFiles.storageAndFridge.forEach(file => formData.append('storageAndFridge', file));
+      }
+      if (hygieneFiles.dishwashingArea.length > 0) {
+        hygieneFiles.dishwashingArea.forEach(file => formData.append('dishwashingArea', file));
+      }
 
       const res = await uploadKitchenHygiene(formData);
       if (!res.ok) {
@@ -541,9 +547,9 @@ const RestaurantOnboardingWizard = () => {
                     <Upload className="w-8 h-8 text-slate-400 mb-2" />
                     <span className="text-sm font-medium text-slate-700">Upload Prep Area View</span>
                     <span className="text-xs text-slate-500 mt-1 truncate max-w-full">
-                      {hygieneFiles.mainPrepStation ? hygieneFiles.mainPrepStation.name : partner?.kitchenHygieneProof?.mainPrepStation?.url ? 'Already uploaded (click to replace)' : 'Choose File'}
+                      {hygieneFiles.mainPrepStation.length > 0 ? `${hygieneFiles.mainPrepStation.length} files selected` : (partner?.kitchenHygieneProof?.mainPrepStation?.length > 0 ? `${partner.kitchenHygieneProof.mainPrepStation.length} files uploaded (click to replace)` : 'Choose Files (Multiple allowed)')}
                     </span>
-                    <input type="file" accept="image/*,video/mp4" onChange={(e) => setHygieneFiles({ ...hygieneFiles, mainPrepStation: e.target.files[0] })} className="hidden" />
+                    <input type="file" multiple accept="image/*,video/mp4" onChange={(e) => setHygieneFiles({ ...hygieneFiles, mainPrepStation: Array.from(e.target.files) })} className="hidden" />
                   </label>
                 </div>
 
@@ -557,9 +563,9 @@ const RestaurantOnboardingWizard = () => {
                         <Upload className="w-5 h-5 text-slate-400 mb-1" />
                         <span className="text-xs font-medium text-slate-700">Upload</span>
                         <span className="text-[10px] text-slate-500 mt-1 truncate max-w-full">
-                          {hygieneFiles.storageAndFridge ? hygieneFiles.storageAndFridge.name : partner?.kitchenHygieneProof?.additionalAreas?.storageAndFridge?.url ? 'Already uploaded' : 'Optional'}
+                          {hygieneFiles.storageAndFridge.length > 0 ? `${hygieneFiles.storageAndFridge.length} files selected` : (partner?.kitchenHygieneProof?.additionalAreas?.storageAndFridge?.length > 0 ? `${partner.kitchenHygieneProof.additionalAreas.storageAndFridge.length} files uploaded` : 'Optional')}
                         </span>
-                        <input type="file" accept="image/*,video/mp4" onChange={(e) => setHygieneFiles({ ...hygieneFiles, storageAndFridge: e.target.files[0] })} className="hidden" />
+                        <input type="file" multiple accept="image/*,video/mp4" onChange={(e) => setHygieneFiles({ ...hygieneFiles, storageAndFridge: Array.from(e.target.files) })} className="hidden" />
                       </label>
                     </div>
                     <div>
@@ -569,9 +575,9 @@ const RestaurantOnboardingWizard = () => {
                         <Upload className="w-5 h-5 text-slate-400 mb-1" />
                         <span className="text-xs font-medium text-slate-700">Upload</span>
                         <span className="text-[10px] text-slate-500 mt-1 truncate max-w-full">
-                          {hygieneFiles.dishwashingArea ? hygieneFiles.dishwashingArea.name : partner?.kitchenHygieneProof?.additionalAreas?.dishwashingArea?.url ? 'Already uploaded' : 'Optional'}
+                          {hygieneFiles.dishwashingArea.length > 0 ? `${hygieneFiles.dishwashingArea.length} files selected` : (partner?.kitchenHygieneProof?.additionalAreas?.dishwashingArea?.length > 0 ? `${partner.kitchenHygieneProof.additionalAreas.dishwashingArea.length} files uploaded` : 'Optional')}
                         </span>
-                        <input type="file" accept="image/*,video/mp4" onChange={(e) => setHygieneFiles({ ...hygieneFiles, dishwashingArea: e.target.files[0] })} className="hidden" />
+                        <input type="file" multiple accept="image/*,video/mp4" onChange={(e) => setHygieneFiles({ ...hygieneFiles, dishwashingArea: Array.from(e.target.files) })} className="hidden" />
                       </label>
                     </div>
                   </div>
@@ -716,9 +722,9 @@ const RestaurantOnboardingWizard = () => {
                 </div>
                 <div>
                   <h3 className="font-bold border-b pb-2 mb-2">Kitchen Hygiene Proof</h3>
-                  <p><strong>Main Prep Station:</strong> {partner?.kitchenHygieneProof?.mainPrepStation?.url ? '✓ Uploaded' : '✗ Missing'}</p>
-                  <p><strong>Storage & Fridge:</strong> {partner?.kitchenHygieneProof?.additionalAreas?.storageAndFridge?.url ? '✓ Uploaded' : 'Optional / Not provided'}</p>
-                  <p><strong>Dishwashing Area:</strong> {partner?.kitchenHygieneProof?.additionalAreas?.dishwashingArea?.url ? '✓ Uploaded' : 'Optional / Not provided'}</p>
+                  <p><strong>Main Prep Station:</strong> {partner?.kitchenHygieneProof?.mainPrepStation?.length > 0 ? `✓ Uploaded (${partner.kitchenHygieneProof.mainPrepStation.length} files)` : '✗ Missing'}</p>
+                  <p><strong>Storage & Fridge:</strong> {partner?.kitchenHygieneProof?.additionalAreas?.storageAndFridge?.length > 0 ? `✓ Uploaded (${partner.kitchenHygieneProof.additionalAreas.storageAndFridge.length} files)` : 'Optional / Not provided'}</p>
+                  <p><strong>Dishwashing Area:</strong> {partner?.kitchenHygieneProof?.additionalAreas?.dishwashingArea?.length > 0 ? `✓ Uploaded (${partner.kitchenHygieneProof.additionalAreas.dishwashingArea.length} files)` : 'Optional / Not provided'}</p>
                 </div>
               </div>
             </div>

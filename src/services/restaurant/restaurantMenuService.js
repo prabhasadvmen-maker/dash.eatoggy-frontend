@@ -3,9 +3,9 @@ import API_BASE_URL from '../apiService';
 
 const API_URL = `${API_BASE_URL}/api/restaurants/menu`;
 
-export const getMenuItems = async () => {
+export const getMenuItems = async (params = '') => {
   const headers = await getRestaurantHeaders();
-  const response = await fetch(API_URL, {
+  const response = await fetch(`${API_URL}${params}`, {
     method: 'GET',
     headers,
   });

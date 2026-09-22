@@ -8,10 +8,17 @@ const getSuperAdminHeaders = () => {
   };
 };
 
-export const getDeliveryPartners = async (status = '', search = '') => {
+export const getDeliveryPartners = async (params = {}) => {
   const query = new URLSearchParams();
-  if (status) query.append('status', status);
-  if (search) query.append('search', search);
+  if (typeof params === 'string') {
+    if (params) query.append('status', params);
+  } else if (typeof params === 'object') {
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') {
+        query.append(k, v);
+      }
+    });
+  }
 
   const response = await fetch(`${API_BASE_URL}/api/super-admin/delivery-partners?${query.toString()}`, {
     method: 'GET',

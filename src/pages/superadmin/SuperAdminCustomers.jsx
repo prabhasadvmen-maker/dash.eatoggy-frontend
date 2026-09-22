@@ -1,36 +1,67 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Eye, ToggleRight, ToggleLeft, ShieldAlert, UserSquare2, ShoppingBag, CreditCard, IndianRupee } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Eye, ToggleRight, ToggleLeft, ShieldAlert, UserSquare2, ShoppingBag, CreditCard } from 'lucide-react';
 import API_BASE_URL from '../../services/apiService';
+import DataTable from '../../components/common/Table/DataTable';
+import { useDataTableSync } from '../../hooks/useDataTableSync';
 
 const SuperAdminCustomers = () => {
+  const {
+    page, setPage,
+    limit, setLimit,
+    search, setSearch,
+    sortBy, sortOrder, setSort,
+    filters, setFilters,
+    handleClearFilters
+  } = useDataTableSync({
+    defaultSortBy: 'createdAt',
+    defaultSortOrder: 'desc'
+  });
+
   const [customers, setCustomers] = useState([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customerDetail, setCustomerDetail] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  useEffect(() => {
-    fetchCustomers();
-  }, [search, statusFilter]);
-
-  const fetchCustomers = async () => {
+  const fetchCustomers = useCallback(async () => {
     try {
       setLoading(true);
-      const query = new URLSearchParams();
-      if (search) query.append('search', search);
-      if (statusFilter) query.append('status', statusFilter);
+      setError('');
+      
+      const queryParams = new URLSearchParams({
+        page,
+        limit,
+        sortBy,
+        sortOrder
+      });
+      
+      if (search) queryParams.append('search', search);
+      
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          queryParams.append(key, value);
+        }
+      });
 
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/customers?${query.toString()}`, {
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/customers?${queryParams.toString()}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('superadmin_token')}`
         }
       });
       const data = await response.json();
+      
       if (response.ok) {
         setCustomers(data.data || []);
+        if (data.meta && data.meta.pagination) {
+          setTotal(data.meta.pagination.total);
+        } else if (data.pagination) { // old format fallback
+          setTotal(data.pagination.total);
+        } else {
+          setTotal(data.data?.length || 0);
+        }
       } else {
         setError(data.message || 'Failed to fetch customers');
       }
@@ -39,7 +70,11 @@ const SuperAdminCustomers = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, limit, search, sortBy, sortOrder, filters]);
+
+  useEffect(() => {
+    fetchCustomers();
+  }, [fetchCustomers]);
 
   const handleToggleStatus = async (id, currentStatus) => {
     try {
@@ -87,9 +122,100 @@ const SuperAdminCustomers = () => {
     return new Date(dateString).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
+  const columns = [
+    {
+      key: 'name',
+      label: 'Customer',
+      sortable: true,
+      render: (row) => (
+        <div className="flex items-center gap-2 font-bold text-slate-800">
+          <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center text-xs font-bold shrink-0">
+            {row.name ? row.name[0].toUpperCase() : 'C'}
+          </div>
+          {row.name || 'Unnamed Customer'}
+        </div>
+      )
+    },
+    {
+      key: 'mobile',
+      label: 'Mobile',
+      sortable: true,
+      render: (row) => <span className="font-medium text-slate-600">{row.mobile}</span>
+    },
+    {
+      key: 'email',
+      label: 'Email',
+      sortable: true,
+      render: (row) => <span className="text-slate-500">{row.email || 'N/A'}</span>
+    },
+    {
+      key: 'totalOrders',
+      label: 'Total Orders',
+      sortable: false,
+      align: 'center',
+      render: (row) => <span className="font-bold text-slate-700">{row.totalOrders}</span>
+    },
+    {
+      key: 'totalSpent',
+      label: 'Total Spent',
+      sortable: false,
+      align: 'center',
+      render: (row) => <span className="font-bold text-amber-700">₹{row.totalSpent?.toLocaleString('en-IN') || 0}</span>
+    },
+    {
+      key: 'isActive',
+      label: 'Status',
+      sortable: true,
+      align: 'center',
+      render: (row) => (
+        <button
+          onClick={() => handleToggleStatus(row._id, row.isActive)}
+          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-colors cursor-pointer ${
+            row.isActive !== false 
+              ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' 
+              : 'bg-red-100 text-red-700 hover:bg-red-200'
+          }`}
+        >
+          {row.isActive !== false ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+          {row.isActive !== false ? 'Active' : 'Suspended'}
+        </button>
+      )
+    },
+    {
+      key: 'createdAt',
+      label: 'Registered Date',
+      sortable: true,
+      render: (row) => <span className="text-slate-400 font-medium">{formatDate(row.createdAt)}</span>
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      align: 'right',
+      render: (row) => (
+        <button
+          onClick={() => openCustomerDetail(row._id)}
+          className="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+        >
+          <Eye size={14} /> View
+        </button>
+      )
+    }
+  ];
+
+  const filterConfig = [
+    {
+      key: 'status',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { label: 'Active', value: 'ACTIVE' },
+        { label: 'Suspended', value: 'SUSPENDED' }
+      ]
+    }
+  ];
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Customer Management</h1>
@@ -104,119 +230,37 @@ const SuperAdminCustomers = () => {
         </div>
       )}
 
-      {/* Filters Bar */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 justify-between items-center">
-        <div className="relative w-full md:w-80">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder="Search by name, mobile, email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#d4af37] focus:border-transparent outline-none"
-          />
-        </div>
+      <DataTable
+        columns={columns}
+        data={customers}
+        loading={loading}
+        emptyMessage="No customers found matching your criteria."
+        
+        search={{ value: search, placeholder: 'Search by name, mobile, email...' }}
+        onSearchChange={setSearch}
+        
+        filterConfig={filterConfig}
+        filters={filters}
+        onFilterChange={setFilters}
+        onClearFilters={handleClearFilters}
+        
+        sorting={{ sortBy, sortOrder }}
+        onSortChange={setSort}
 
-        <div className="flex gap-3 w-full md:w-auto">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#d4af37] outline-none"
-          >
-            <option value="">All Statuses</option>
-            <option value="ACTIVE">Active Only</option>
-            <option value="SUSPENDED">Suspended Only</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Table Section */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-600">
-            <thead className="bg-gray-50 border-b border-gray-100 text-gray-400 uppercase text-xs font-semibold">
-              <tr>
-                <th className="px-6 py-4">Customer</th>
-                <th className="px-6 py-4">Mobile</th>
-                <th className="px-6 py-4">Email</th>
-                <th className="px-6 py-4 text-center">Total Orders</th>
-                <th className="px-6 py-4 text-center">Total Spent</th>
-                <th className="px-6 py-4 text-center">Status</th>
-                <th className="px-6 py-4">Registered Date</th>
-                <th className="px-6 py-4 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {loading ? (
-                <tr>
-                  <td colSpan="8" className="px-6 py-8 text-center text-gray-400">Loading customers...</td>
-                </tr>
-              ) : customers.length === 0 ? (
-                <tr>
-                  <td colSpan="8" className="px-6 py-8 text-center text-gray-400">No customers found.</td>
-                </tr>
-              ) : (
-                customers.map((customer) => (
-                  <tr key={customer._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-slate-800 flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center text-xs font-bold">
-                        {customer.name ? customer.name[0].toUpperCase() : 'C'}
-                      </div>
-                      {customer.name || 'Unnamed Customer'}
-                    </td>
-                    <td className="px-6 py-4 font-medium text-slate-600">
-                      {customer.mobile}
-                    </td>
-                    <td className="px-6 py-4 text-slate-500">
-                      {customer.email || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 text-center font-bold text-slate-700">
-                      {customer.totalOrders}
-                    </td>
-                    <td className="px-6 py-4 text-center font-bold text-amber-700">
-                      ₹{customer.totalSpent?.toLocaleString('en-IN') || 0}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() => handleToggleStatus(customer._id, customer.isActive)}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-colors ${
-                          customer.isActive !== false 
-                            ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' 
-                            : 'bg-red-100 text-red-700 hover:bg-red-200'
-                        }`}
-                      >
-                        {customer.isActive !== false ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
-                        {customer.isActive !== false ? 'Active' : 'Suspended'}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 text-slate-400 font-medium">
-                      {formatDate(customer.createdAt)}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() => openCustomerDetail(customer._id)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors"
-                      >
-                        <Eye size={14} /> View Detail
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+        pagination={{ page, limit, total }}
+        onPageChange={setPage}
+        onLimitChange={setLimit}
+      />
 
       {/* Customer Detail Modal */}
       {selectedCustomer && (
         <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-fadeIn">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white">
               <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <UserSquare2 className="text-amber-500" size={20} /> Customer Details
               </h2>
-              <button onClick={() => { setSelectedCustomer(null); setCustomerDetail(null); }} className="text-gray-400 hover:text-gray-600 p-2 text-2xl leading-none">&times;</button>
+              <button onClick={() => { setSelectedCustomer(null); setCustomerDetail(null); }} className="text-gray-400 hover:text-gray-600 p-2 text-2xl leading-none cursor-pointer">&times;</button>
             </div>
 
             {loadingDetail || !customerDetail ? (

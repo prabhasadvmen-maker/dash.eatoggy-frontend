@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { ArrowUp, ArrowDown } from 'lucide-react';
 import Spinner from '../Loader/Spinner';
-import Pagination from '../Pagination/Pagination';
 import EmptyState from '../EmptyState/EmptyState';
+import DataTableToolbar from './DataTableToolbar';
+import DataTableFilters from './DataTableFilters';
+import DataTablePagination from './DataTablePagination';
 
 const DataTable = ({
   columns = [],
@@ -9,41 +12,106 @@ const DataTable = ({
   loading = false,
   emptyState = null,
   emptyMessage = 'No data available.',
-  pagination = false,
-  page = 1,
-  pageSize = 10,
-  total = 0,
+  
+  // Pagination
+  pagination = null, // { page, limit, total }
   onPageChange,
+  onLimitChange,
+
+  // Search & Filters
+  search = null, // { value, placeholder }
+  onSearchChange,
+  filterConfig = [],
+  filters = {},
+  onFilterChange,
+  onClearFilters,
+  
+  // Toolbar actions
+  actions = null,
+
+  // Sorting
+  sorting = null, // { sortBy, sortOrder }
+  onSortChange,
+
   onRowClick,
   className = '',
   tableClassName = '',
   rowKey = '_id',
   id
 }) => {
+  const [showFilters, setShowFilters] = useState(false);
   const safeData = Array.isArray(data) ? data : [];
+  
+  const hasActiveFilters = Object.values(filters).some(val => val !== undefined && val !== null && val !== '');
+
+  const handleSortClick = (colKey) => {
+    if (!onSortChange || !sorting) return;
+    const isCurrentSort = sorting.sortBy === colKey;
+    let newOrder = 'asc';
+    if (isCurrentSort && sorting.sortOrder === 'asc') newOrder = 'desc';
+    onSortChange(colKey, newOrder);
+  };
 
   return (
-    <div id={id} className={`bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm ${className}`}>
-      <div className="overflow-x-auto custom-scrollbar">
+    <div id={id} className={`bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col ${className}`}>
+      {/* Toolbar */}
+      {(search || actions || filterConfig.length > 0) && (
+        <DataTableToolbar
+          search={search?.value}
+          placeholder={search?.placeholder}
+          onSearchChange={onSearchChange}
+          actions={actions}
+          filterConfig={filterConfig}
+          showFilters={showFilters}
+          onToggleFilters={() => setShowFilters(!showFilters)}
+          hasActiveFilters={hasActiveFilters}
+          onClearFilters={onClearFilters}
+        />
+      )}
+
+      {/* Filters */}
+      <DataTableFilters
+        show={showFilters}
+        filterConfig={filterConfig}
+        filters={filters}
+        onFilterChange={onFilterChange}
+        onClose={() => setShowFilters(false)}
+      />
+
+      <div className="overflow-x-auto custom-scrollbar flex-1">
         <table className={`w-full text-left border-collapse ${tableClassName}`}>
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              {columns.map((col, idx) => (
-                <th
-                  key={col.key || idx}
-                  style={col.width ? { width: col.width } : undefined}
-                  className={`p-4 ${col.headerClassName || ''} ${col.align === 'right' ? 'text-right' : ''}`}
-                >
-                  {col.label}
-                </th>
-              ))}
+              {columns.map((col, idx) => {
+                const isSortable = col.sortable && onSortChange;
+                const isSorted = sorting?.sortBy === col.key;
+                
+                return (
+                  <th
+                    key={col.key || idx}
+                    style={col.width ? { width: col.width } : undefined}
+                    className={`p-4 ${col.headerClassName || ''} ${col.align === 'right' ? 'text-right' : ''} ${isSortable ? 'cursor-pointer hover:bg-slate-100 transition-colors select-none' : ''}`}
+                    onClick={() => isSortable ? handleSortClick(col.key) : undefined}
+                  >
+                    <div className={`flex items-center gap-1 ${col.align === 'right' ? 'justify-end' : ''}`}>
+                      {col.label}
+                      {isSortable && (
+                        <div className="flex flex-col text-slate-300 ml-1">
+                          {(!isSorted || (isSorted && sorting.sortOrder === 'asc')) && <ArrowUp size={10} className={isSorted && sorting.sortOrder === 'asc' ? 'text-slate-800' : 'mb-[1px]'} />}
+                          {(!isSorted || (isSorted && sorting.sortOrder === 'desc')) && <ArrowDown size={10} className={isSorted && sorting.sortOrder === 'desc' ? 'text-slate-800' : 'mt-[1px]'} />}
+                        </div>
+                      )}
+                    </div>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+          <tbody className="divide-y divide-slate-100 text-sm text-slate-700 relative">
             {loading ? (
               <tr>
-                <td colSpan={columns.length || 1} className="p-12 text-center">
+                <td colSpan={columns.length || 1} className="p-16 text-center">
                   <div className="flex items-center justify-center gap-2 text-slate-500">
                     <Spinner size="md" />
                     <span>Loading data...</span>
@@ -52,7 +120,7 @@ const DataTable = ({
               </tr>
             ) : safeData.length === 0 ? (
               <tr>
-                <td colSpan={columns.length || 1} className="p-8">
+                <td colSpan={columns.length || 1} className="p-12">
                   {emptyState ? (
                     emptyState
                   ) : (
@@ -87,15 +155,15 @@ const DataTable = ({
         </table>
       </div>
 
-      {pagination && total > 0 && onPageChange && (
-        <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
-          <Pagination
-            page={page}
-            pageSize={pageSize}
-            total={total}
-            onPageChange={onPageChange}
-          />
-        </div>
+      {/* Pagination */}
+      {pagination && pagination.total > 0 && (
+        <DataTablePagination
+          page={pagination.page}
+          limit={pagination.limit}
+          total={pagination.total}
+          onPageChange={onPageChange}
+          onLimitChange={onLimitChange}
+        />
       )}
     </div>
   );

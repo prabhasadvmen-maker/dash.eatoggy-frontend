@@ -1,36 +1,67 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Eye, CreditCard, ShieldAlert, Store, UserSquare2, Ban } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { CreditCard, ShieldAlert, Store, UserSquare2, Ban, Eye } from 'lucide-react';
 import API_BASE_URL from '../../services/apiService';
+import DataTable from '../../components/common/Table/DataTable';
+import { useDataTableSync } from '../../hooks/useDataTableSync';
 
 const SuperAdminSubscriptions = () => {
+  const {
+    page, setPage,
+    limit, setLimit,
+    search, setSearch,
+    sortBy, sortOrder, setSort,
+    filters, setFilters,
+    handleClearFilters
+  } = useDataTableSync({
+    defaultSortBy: 'createdAt',
+    defaultSortOrder: 'desc'
+  });
+
   const [subscriptions, setSubscriptions] = useState([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  
   const [selectedSub, setSelectedSub] = useState(null);
   const [subDetail, setSubDetail] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  useEffect(() => {
-    fetchSubscriptions();
-  }, [search, statusFilter]);
-
-  const fetchSubscriptions = async () => {
+  const fetchSubscriptions = useCallback(async () => {
     try {
       setLoading(true);
-      const query = new URLSearchParams();
-      if (search) query.append('search', search);
-      if (statusFilter) query.append('status', statusFilter);
+      setError('');
+      
+      const queryParams = new URLSearchParams({
+        page,
+        limit,
+        sortBy,
+        sortOrder
+      });
+      
+      if (search) queryParams.append('search', search);
+      
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          queryParams.append(key, value);
+        }
+      });
 
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/subscriptions?${query.toString()}`, {
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/subscriptions?${queryParams.toString()}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('superadmin_token')}`
         }
       });
       const data = await response.json();
+      
       if (response.ok) {
         setSubscriptions(data.data || []);
+        if (data.meta && data.meta.pagination) {
+          setTotal(data.meta.pagination.total);
+        } else if (data.pagination) {
+          setTotal(data.pagination.total);
+        } else {
+          setTotal(data.data?.length || 0);
+        }
       } else {
         setError(data.message || 'Failed to fetch subscriptions');
       }
@@ -39,7 +70,11 @@ const SuperAdminSubscriptions = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, limit, search, sortBy, sortOrder, filters]);
+
+  useEffect(() => {
+    fetchSubscriptions();
+  }, [fetchSubscriptions]);
 
   const handleCancelSubscription = async (id) => {
     if (!window.confirm('Are you sure you want to cancel this subscription as Admin?')) return;
@@ -102,9 +137,105 @@ const SuperAdminSubscriptions = () => {
     );
   };
 
+  const columns = [
+    {
+      key: 'subscriptionNumber',
+      label: 'Subscription #',
+      sortable: true,
+      render: (row) => <span className="font-bold text-slate-800">{row.subscriptionNumber}</span>
+    },
+    {
+      key: 'customerId',
+      label: 'Customer',
+      sortable: false,
+      render: (row) => (
+        <div>
+          <div className="font-medium text-slate-700">{row.customerId?.name || 'Customer'}</div>
+          <div className="text-xs text-slate-400">{row.customerId?.mobile}</div>
+        </div>
+      )
+    },
+    {
+      key: 'planId',
+      label: 'Restaurant & Plan',
+      sortable: false,
+      render: (row) => (
+        <div>
+          <div className="font-medium text-slate-700">{row.planSnapshot?.name || 'Tiffin Plan'}</div>
+          <div className="text-xs text-slate-400">{row.restaurantId?.name}</div>
+        </div>
+      )
+    },
+    {
+      key: 'completedOccurrencesCount',
+      label: 'Completed',
+      sortable: false, // Could be sortable if we allow sorting by virtual or numeric
+      align: 'center',
+      render: (row) => <span className="font-bold text-slate-700">{row.completedOccurrencesCount} / {row.totalOccurrences}</span>
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      align: 'center',
+      render: (row) => getStatusBadge(row.status)
+    },
+    {
+      key: 'pricing.grandTotal',
+      label: 'Total Price',
+      sortable: true,
+      align: 'center',
+      render: (row) => <span className="font-bold text-slate-800">₹{row.pricing?.grandTotal || 0}</span>
+    },
+    {
+      key: 'startDate',
+      label: 'Start Date',
+      sortable: true,
+      render: (row) => <span className="text-slate-400 font-medium whitespace-nowrap">{formatDate(row.startDate)}</span>
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      align: 'right',
+      render: (row) => (
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={() => openSubDetail(row._id)}
+            className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+          >
+            <Eye size={14} /> View
+          </button>
+
+          {row.status === 'ACTIVE' && (
+            <button
+              onClick={() => handleCancelSubscription(row._id)}
+              className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+            >
+              <Ban size={14} /> Cancel
+            </button>
+          )}
+        </div>
+      )
+    }
+  ];
+
+  const filterConfig = [
+    {
+      key: 'status',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { label: 'Active', value: 'ACTIVE' },
+        { label: 'Paused', value: 'PAUSED' },
+        { label: 'Pending Payment', value: 'PENDING_PAYMENT' },
+        { label: 'Cancelled', value: 'CANCELLED' },
+        { label: 'Expired', value: 'EXPIRED' }
+      ]
+    }
+  ];
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Master Subscriptions Management</h1>
@@ -119,120 +250,37 @@ const SuperAdminSubscriptions = () => {
         </div>
       )}
 
-      {/* Filters Bar */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 justify-between items-center">
-        <div className="relative w-full md:w-80">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder="Search subscription number..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#d4af37] focus:border-transparent outline-none"
-          />
-        </div>
+      <DataTable
+        columns={columns}
+        data={subscriptions}
+        loading={loading}
+        emptyMessage="No subscriptions found matching your criteria."
+        
+        search={{ value: search, placeholder: 'Search subscription number...' }}
+        onSearchChange={setSearch}
+        
+        filterConfig={filterConfig}
+        filters={filters}
+        onFilterChange={setFilters}
+        onClearFilters={handleClearFilters}
+        
+        sorting={{ sortBy, sortOrder }}
+        onSortChange={setSort}
 
-        <div className="flex gap-3 w-full md:w-auto">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#d4af37] outline-none"
-          >
-            <option value="">All Statuses</option>
-            <option value="ACTIVE">Active</option>
-            <option value="PAUSED">Paused</option>
-            <option value="PENDING_PAYMENT">Pending Payment</option>
-            <option value="CANCELLED">Cancelled</option>
-            <option value="EXPIRED">Expired</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-600">
-            <thead className="bg-gray-50 border-b border-gray-100 text-gray-400 uppercase text-xs font-semibold">
-              <tr>
-                <th className="px-6 py-4">Subscription #</th>
-                <th className="px-6 py-4">Customer</th>
-                <th className="px-6 py-4">Restaurant & Plan</th>
-                <th className="px-6 py-4 text-center">Completed</th>
-                <th className="px-6 py-4 text-center">Status</th>
-                <th className="px-6 py-4 text-center">Total Price</th>
-                <th className="px-6 py-4">Start Date</th>
-                <th className="px-6 py-4 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {loading ? (
-                <tr>
-                  <td colSpan="8" className="px-6 py-8 text-center text-gray-400">Loading subscriptions...</td>
-                </tr>
-              ) : subscriptions.length === 0 ? (
-                <tr>
-                  <td colSpan="8" className="px-6 py-8 text-center text-gray-400">No subscriptions found.</td>
-                </tr>
-              ) : (
-                subscriptions.map((sub) => (
-                  <tr key={sub._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-slate-800">
-                      {sub.subscriptionNumber}
-                    </td>
-                    <td className="px-6 py-4 font-medium text-slate-700">
-                      {sub.customerId?.name || 'Customer'}
-                      <div className="text-xs text-gray-400">{sub.customerId?.mobile}</div>
-                    </td>
-                    <td className="px-6 py-4 font-medium text-slate-700">
-                      {sub.planSnapshot?.name || 'Tiffin Plan'}
-                      <div className="text-xs text-gray-400">{sub.restaurantId?.name}</div>
-                    </td>
-                    <td className="px-6 py-4 text-center font-bold text-slate-700">
-                      {sub.completedOccurrencesCount} / {sub.totalOccurrences}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      {getStatusBadge(sub.status)}
-                    </td>
-                    <td className="px-6 py-4 text-center font-bold text-slate-800">
-                      ₹{sub.pricing?.grandTotal || 0}
-                    </td>
-                    <td className="px-6 py-4 text-slate-400 font-medium whitespace-nowrap">
-                      {formatDate(sub.startDate)}
-                    </td>
-                    <td className="px-6 py-4 text-center flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => openSubDetail(sub._id)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors"
-                      >
-                        <Eye size={14} /> View
-                      </button>
-
-                      {sub.status === 'ACTIVE' && (
-                        <button
-                          onClick={() => handleCancelSubscription(sub._id)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-semibold transition-colors"
-                        >
-                          <Ban size={14} /> Cancel
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+        pagination={{ page, limit, total }}
+        onPageChange={setPage}
+        onLimitChange={setLimit}
+      />
 
       {/* Subscription Detail Modal */}
       {selectedSub && (
         <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-fadeIn">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white">
               <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <CreditCard className="text-amber-500" size={20} /> Subscription ({subDetail?.subscription?.subscriptionNumber})
               </h2>
-              <button onClick={() => { setSelectedSub(null); setSubDetail(null); }} className="text-gray-400 hover:text-gray-600 p-2 text-2xl leading-none">&times;</button>
+              <button onClick={() => { setSelectedSub(null); setSubDetail(null); }} className="text-gray-400 hover:text-gray-600 p-2 text-2xl leading-none cursor-pointer">&times;</button>
             </div>
 
             {loadingDetail || !subDetail ? (
@@ -266,7 +314,7 @@ const SuperAdminSubscriptions = () => {
                 {/* Occurrence History */}
                 <div>
                   <h3 className="font-bold text-slate-800 text-sm mb-3">Daily Occurrences Timeline ({subDetail.occurrences?.length || 0})</h3>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
                     {subDetail.occurrences?.map((occ, idx) => (
                       <div key={idx} className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex justify-between items-center text-xs">
                         <div>

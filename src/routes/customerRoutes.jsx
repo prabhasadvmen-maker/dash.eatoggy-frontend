@@ -1,5 +1,5 @@
 import React from 'react';
-import { Route, Navigate } from 'react-router-dom';
+import { Route, Navigate, Outlet } from 'react-router-dom';
 import ProtectedRoute from '../components/common/ProtectedRoute';
 import UserLogin from '../pages/auth/UserLogin';
 import CustomerDashboardLayout from '../layouts/customer/CustomerDashboardLayout';
@@ -18,20 +18,30 @@ import CustomerSubscriptionDetail from '../pages/customer/CustomerSubscriptionDe
 import CustomerSupport from '../pages/customer/CustomerSupport';
 import ComingSoon from '../pages/website/ComingSoon';
 import { Tags, Bell, MapPin, UserCircle, Settings, HelpCircle } from 'lucide-react';
+import { LocationProvider } from '../context/LocationContext';
+import { CartProvider } from '../context/CartContext';
 
 export const renderCustomerRoutes = () => (
-  <>
-    <Route path="/user/login" element={<UserLogin />} />
+  <Route
+    path="/user"
+    element={
+      <LocationProvider>
+        <CartProvider>
+          <Outlet />
+        </CartProvider>
+      </LocationProvider>
+    }
+  >
+    <Route path="login" element={<UserLogin />} />
 
     <Route
-      path="/user"
       element={
         <ProtectedRoute roleType="customer">
           <CustomerDashboardLayout />
         </ProtectedRoute>
       }
     >
-      <Route index element={<Navigate to="/user/dashboard" replace />} />
+      <Route index element={<Navigate to="dashboard" replace />} />
       <Route path="dashboard" element={<CustomerDashboard />} />
       <Route path="home" element={<CustomerHome />} />
       <Route path="restaurant/:id" element={<CustomerRestaurantDetail />} />
@@ -52,7 +62,7 @@ export const renderCustomerRoutes = () => (
       <Route path="settings" element={<ComingSoon title="Settings" icon={Settings} />} />
       <Route path="help" element={<ComingSoon title="Help Center" icon={HelpCircle} />} />
     </Route>
-  </>
+  </Route>
 );
 
 export default renderCustomerRoutes;

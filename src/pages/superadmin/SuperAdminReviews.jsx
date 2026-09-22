@@ -1,29 +1,63 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Star, ShieldAlert, EyeOff, ShieldCheck, Flag } from 'lucide-react';
 import API_BASE_URL from '../../services/apiService';
+import DataTable from '../../components/common/Table/DataTable';
+import { useDataTableSync } from '../../hooks/useDataTableSync';
 
 const SuperAdminReviews = () => {
+  const {
+    page, setPage,
+    limit, setLimit,
+    search, setSearch,
+    sortBy, sortOrder, setSort,
+    filters, setFilters,
+    handleClearFilters
+  } = useDataTableSync({
+    defaultSortBy: 'createdAt',
+    defaultSortOrder: 'desc'
+  });
+
   const [reviews, setReviews] = useState([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
 
-  useEffect(() => {
-    fetchReviews();
-  }, [statusFilter]);
-
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     try {
       setLoading(true);
-      const query = statusFilter ? `?status=${statusFilter}` : '';
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/reviews${query}`, {
+      setError('');
+      
+      const queryParams = new URLSearchParams({
+        page,
+        limit,
+        sortBy,
+        sortOrder
+      });
+      
+      if (search) queryParams.append('search', search);
+      
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          queryParams.append(key, value);
+        }
+      });
+
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/reviews?${queryParams.toString()}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('superadmin_token')}`
         }
       });
       const data = await response.json();
+      
       if (response.ok) {
         setReviews(data.data || []);
+        if (data.meta && data.meta.pagination) {
+          setTotal(data.meta.pagination.total);
+        } else if (data.pagination) {
+          setTotal(data.pagination.total);
+        } else {
+          setTotal(data.data?.length || 0);
+        }
       } else {
         setError(data.message || 'Failed to fetch reviews');
       }
@@ -32,7 +66,11 @@ const SuperAdminReviews = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, limit, search, sortBy, sortOrder, filters]);
+
+  useEffect(() => {
+    fetchReviews();
+  }, [fetchReviews]);
 
   const handleUpdateStatus = async (reviewId, newStatus) => {
     try {
@@ -60,6 +98,100 @@ const SuperAdminReviews = () => {
     return new Date(dateString).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
+  const columns = [
+    {
+      key: 'customer',
+      label: 'Customer',
+      sortable: false,
+      render: (row) => <span className="font-bold text-slate-800 text-xs">{row.customerId?.fullName || row.customerId?.name || 'Customer'}</span>
+    },
+    {
+      key: 'restaurant',
+      label: 'Restaurant',
+      sortable: false,
+      render: (row) => <span className="font-medium text-slate-700 text-xs">{row.restaurantId?.name || 'Restaurant'}</span>
+    },
+    {
+      key: 'rating',
+      label: 'Rating',
+      sortable: true,
+      align: 'center',
+      render: (row) => <span className="font-bold text-amber-600">★ {row.rating}/5</span>
+    },
+    {
+      key: 'comment',
+      label: 'Comment',
+      sortable: false,
+      render: (row) => <span className="text-slate-600 max-w-xs text-xs">{row.comment || 'No text'}</span>
+    },
+    {
+      key: 'createdAt',
+      label: 'Date',
+      sortable: true,
+      render: (row) => <span className="text-slate-400 text-xs whitespace-nowrap">{formatDate(row.createdAt)}</span>
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      align: 'center',
+      render: (row) => (
+        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${row.status === 'PUBLISHED' ? 'bg-emerald-100 text-emerald-800' : row.status === 'HIDDEN' ? 'bg-gray-100 text-gray-700' : 'bg-red-100 text-red-800'}`}>
+          {row.status}
+        </span>
+      )
+    },
+    {
+      key: 'actions',
+      label: 'Moderation Action',
+      align: 'center',
+      render: (row) => (
+        <div className="flex justify-center gap-2">
+          {row.status !== 'PUBLISHED' && (
+            <button
+              onClick={() => handleUpdateStatus(row._id, 'PUBLISHED')}
+              title="Publish"
+              className="p-1.5 bg-emerald-100 text-emerald-800 rounded-lg hover:bg-emerald-200 transition-colors cursor-pointer"
+            >
+              <ShieldCheck size={14} />
+            </button>
+          )}
+          {row.status !== 'HIDDEN' && (
+            <button
+              onClick={() => handleUpdateStatus(row._id, 'HIDDEN')}
+              title="Hide Review"
+              className="p-1.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors cursor-pointer"
+            >
+              <EyeOff size={14} />
+            </button>
+          )}
+          {row.status !== 'FLAGGED' && (
+            <button
+              onClick={() => handleUpdateStatus(row._id, 'FLAGGED')}
+              title="Flag Review"
+              className="p-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors cursor-pointer"
+            >
+              <Flag size={14} />
+            </button>
+          )}
+        </div>
+      )
+    }
+  ];
+
+  const filterConfig = [
+    {
+      key: 'status',
+      label: 'Review Status',
+      type: 'select',
+      options: [
+        { label: 'Published', value: 'PUBLISHED' },
+        { label: 'Hidden', value: 'HIDDEN' },
+        { label: 'Flagged', value: 'FLAGGED' }
+      ]
+    }
+  ];
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -76,105 +208,27 @@ const SuperAdminReviews = () => {
         </div>
       )}
 
-      {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-4 items-center">
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#d4af37] outline-none"
-        >
-          <option value="">All Review Statuses</option>
-          <option value="PUBLISHED">Published</option>
-          <option value="HIDDEN">Hidden</option>
-          <option value="FLAGGED">Flagged</option>
-        </select>
-      </div>
+      <DataTable
+        columns={columns}
+        data={reviews}
+        loading={loading}
+        emptyMessage="No reviews found matching your criteria."
+        
+        search={{ value: search, placeholder: 'Search review comment...' }}
+        onSearchChange={setSearch}
+        
+        filterConfig={filterConfig}
+        filters={filters}
+        onFilterChange={setFilters}
+        onClearFilters={handleClearFilters}
+        
+        sorting={{ sortBy, sortOrder }}
+        onSortChange={setSort}
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-600">
-            <thead className="bg-gray-50 border-b border-gray-100 text-gray-400 uppercase text-xs font-semibold">
-              <tr>
-                <th className="px-6 py-4">Customer</th>
-                <th className="px-6 py-4">Restaurant</th>
-                <th className="px-6 py-4 text-center">Rating</th>
-                <th className="px-6 py-4">Comment</th>
-                <th className="px-6 py-4">Date</th>
-                <th className="px-6 py-4 text-center">Status</th>
-                <th className="px-6 py-4 text-center">Moderation Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {loading ? (
-                <tr>
-                  <td colSpan="7" className="px-6 py-8 text-center text-gray-400">Loading master reviews...</td>
-                </tr>
-              ) : reviews.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="px-6 py-8 text-center text-gray-400">No reviews found matching criteria.</td>
-                </tr>
-              ) : (
-                reviews.map((rev) => (
-                  <tr key={rev._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-slate-800 text-xs">
-                      {rev.customerId?.fullName || rev.customerId?.name || 'Customer'}
-                    </td>
-                    <td className="px-6 py-4 font-medium text-slate-700 text-xs">
-                      {rev.restaurantId?.name || 'Restaurant'}
-                    </td>
-                    <td className="px-6 py-4 text-center font-bold text-amber-600">
-                      ★ {rev.rating}/5
-                    </td>
-                    <td className="px-6 py-4 text-slate-600 max-w-xs text-xs">
-                      {rev.comment || 'No text'}
-                    </td>
-                    <td className="px-6 py-4 text-slate-400 text-xs whitespace-nowrap">
-                      {formatDate(rev.createdAt)}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${rev.status === 'PUBLISHED' ? 'bg-emerald-100 text-emerald-800' : rev.status === 'HIDDEN' ? 'bg-gray-100 text-gray-700' : 'bg-red-100 text-red-800'}`}>
-                        {rev.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex justify-center gap-2">
-                        {rev.status !== 'PUBLISHED' && (
-                          <button
-                            onClick={() => handleUpdateStatus(rev._id, 'PUBLISHED')}
-                            title="Publish"
-                            className="p-1.5 bg-emerald-100 text-emerald-800 rounded-lg hover:bg-emerald-200 transition-colors"
-                          >
-                            <ShieldCheck size={14} />
-                          </button>
-                        )}
-                        {rev.status !== 'HIDDEN' && (
-                          <button
-                            onClick={() => handleUpdateStatus(rev._id, 'HIDDEN')}
-                            title="Hide Review"
-                            className="p-1.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
-                          >
-                            <EyeOff size={14} />
-                          </button>
-                        )}
-                        {rev.status !== 'FLAGGED' && (
-                          <button
-                            onClick={() => handleUpdateStatus(rev._id, 'FLAGGED')}
-                            title="Flag Review"
-                            className="p-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
-                          >
-                            <Flag size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+        pagination={{ page, limit, total }}
+        onPageChange={setPage}
+        onLimitChange={setLimit}
+      />
     </div>
   );
 };

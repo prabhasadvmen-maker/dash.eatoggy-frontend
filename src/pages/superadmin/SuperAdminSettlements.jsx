@@ -1,13 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { Landmark, ShieldAlert, CheckCircle2, Clock, Plus, X, AlertCircle, RefreshCw, Eye } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Landmark, ShieldAlert, Plus, X, AlertCircle, Eye } from 'lucide-react';
 import API_BASE_URL from '../../services/apiService';
+import DataTable from '../../components/common/Table/DataTable';
+import { useDataTableSync } from '../../hooks/useDataTableSync';
 
 const SuperAdminSettlements = () => {
+  const {
+    page, setPage,
+    limit, setLimit,
+    search, setSearch,
+    sortBy, sortOrder, setSort,
+    filters, setFilters,
+    handleClearFilters
+  } = useDataTableSync({
+    defaultSortBy: 'createdAt',
+    defaultSortOrder: 'desc'
+  });
+
   const [settlements, setSettlements] = useState([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
 
   // Generation Modal state
   const [genModalOpen, setGenModalOpen] = useState(false);
@@ -26,26 +39,42 @@ const SuperAdminSettlements = () => {
   const [detailModal, setDetailModal] = useState({ open: false, settlement: null, loading: false });
   const [processing, setProcessing] = useState(false);
 
-  useEffect(() => {
-    fetchSettlements();
-    fetchPartners();
-  }, [statusFilter, typeFilter]);
-
-  const fetchSettlements = async () => {
+  const fetchSettlements = useCallback(async () => {
     try {
       setLoading(true);
-      const query = new URLSearchParams();
-      if (statusFilter) query.append('status', statusFilter);
-      if (typeFilter) query.append('entityType', typeFilter);
+      setError('');
+      
+      const queryParams = new URLSearchParams({
+        page,
+        limit,
+        sortBy,
+        sortOrder
+      });
+      
+      if (search) queryParams.append('search', search);
+      
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          queryParams.append(key, value);
+        }
+      });
 
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/settlements?${query.toString()}`, {
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/settlements?${queryParams.toString()}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('superadmin_token')}`
         }
       });
       const data = await response.json();
+      
       if (response.ok) {
         setSettlements(data.data || []);
+        if (data.meta && data.meta.pagination) {
+          setTotal(data.meta.pagination.total);
+        } else if (data.pagination) {
+          setTotal(data.pagination.total);
+        } else {
+          setTotal(data.data?.length || 0);
+        }
       } else {
         setError(data.message || 'Failed to fetch settlements');
       }
@@ -54,9 +83,9 @@ const SuperAdminSettlements = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, limit, search, sortBy, sortOrder, filters]);
 
-  const fetchPartners = async () => {
+  const fetchPartners = useCallback(async () => {
     try {
       const token = localStorage.getItem('superadmin_token');
       const [restRes, delRes] = await Promise.all([
@@ -75,7 +104,15 @@ const SuperAdminSettlements = () => {
     } catch (err) {
       console.error('Failed to load partners for settlement generation:', err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchSettlements();
+  }, [fetchSettlements]);
+
+  useEffect(() => {
+    fetchPartners();
+  }, [fetchPartners]);
 
   const handleGenerateSettlement = async (e) => {
     e.preventDefault();
@@ -248,6 +285,144 @@ const SuperAdminSettlements = () => {
     );
   };
 
+  const columns = [
+    {
+      key: 'settlementNumber',
+      label: 'Settlement #',
+      sortable: false,
+      render: (row) => <span className="font-bold text-slate-800 font-mono text-xs">{row.settlementNumber}</span>
+    },
+    {
+      key: 'partnerName',
+      label: 'Partner Name',
+      sortable: false,
+      render: (row) => (
+        <div>
+          <div className="font-medium text-slate-700">{row.entityType === 'RESTAURANT' ? row.restaurantId?.restaurantName || row.restaurantId?.name || 'Restaurant' : row.deliveryPartnerId?.fullName || 'Rider'}</div>
+          <div className="text-xs text-gray-400 font-semibold">{row.entityType}</div>
+        </div>
+      )
+    },
+    {
+      key: 'period',
+      label: 'Period',
+      sortable: false,
+      render: (row) => (
+        <span className="text-slate-500 font-medium whitespace-nowrap text-xs">
+          {formatDate(row.periodStart)} – {formatDate(row.periodEnd)}
+        </span>
+      )
+    },
+    {
+      key: 'totalOrdersCount',
+      label: 'Orders',
+      sortable: false,
+      align: 'center',
+      render: (row) => <span className="font-bold text-slate-700">{row.totalOrdersCount}</span>
+    },
+    {
+      key: 'grossEarnings',
+      label: 'Gross',
+      sortable: false,
+      align: 'center',
+      render: (row) => <span className="font-bold text-slate-800">₹{row.grossEarnings}</span>
+    },
+    {
+      key: 'deductions',
+      label: 'Commission / Tax',
+      sortable: false,
+      align: 'center',
+      render: (row) => (
+        <span className="font-semibold text-red-600 text-xs">
+          -₹{(row.platformCommissionDeduction || 0) + (row.taxDeduction || 0) + (row.refundDeduction || 0)}
+        </span>
+      )
+    },
+    {
+      key: 'netPayoutAmount',
+      label: 'Net Payout',
+      sortable: true,
+      align: 'center',
+      render: (row) => <span className="font-bold text-emerald-700 text-base">₹{row.netPayoutAmount}</span>
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      align: 'center',
+      render: (row) => getStatusBadge(row.status)
+    },
+    {
+      key: 'actions',
+      label: 'Action',
+      align: 'right',
+      render: (row) => (
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={() => handleOpenDetail(row._id)}
+            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+            title="View Details"
+          >
+            <Eye size={16} />
+          </button>
+
+          {row.status === 'PENDING' && (
+            <button
+              onClick={() => handleProcessSettlement(row._id)}
+              disabled={processing}
+              className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              Process
+            </button>
+          )}
+
+          {(row.status === 'PENDING' || row.status === 'PROCESSING') && (
+            <button
+              onClick={() => setPayoutModal({ open: true, settlement: row, ref: '', notes: '' })}
+              disabled={processing}
+              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              Mark Paid
+            </button>
+          )}
+
+          {row.status === 'PROCESSING' && (
+            <button
+              onClick={() => setFailModal({ open: true, settlement: row, reason: '', notes: '' })}
+              disabled={processing}
+              className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              Fail
+            </button>
+          )}
+        </div>
+      )
+    }
+  ];
+
+  const filterConfig = [
+    {
+      key: 'entityType',
+      label: 'Partner Type',
+      type: 'select',
+      options: [
+        { label: 'Restaurants', value: 'RESTAURANT' },
+        { label: 'Delivery Partners', value: 'DELIVERY_PARTNER' }
+      ]
+    },
+    {
+      key: 'status',
+      label: 'Payout Status',
+      type: 'select',
+      options: [
+        { label: 'Pending Payout', value: 'PENDING' },
+        { label: 'Processing', value: 'PROCESSING' },
+        { label: 'Paid', value: 'PAID' },
+        { label: 'Failed', value: 'FAILED' }
+      ]
+    }
+  ];
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -271,152 +446,37 @@ const SuperAdminSettlements = () => {
         </div>
       )}
 
-      {/* Filters Bar */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 justify-between items-center">
-        <div className="flex flex-wrap gap-3 w-full md:w-auto">
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#d4af37] outline-none font-medium"
-          >
-            <option value="">All Partner Types</option>
-            <option value="RESTAURANT">Restaurants</option>
-            <option value="DELIVERY_PARTNER">Delivery Partners</option>
-          </select>
+      <DataTable
+        columns={columns}
+        data={settlements}
+        loading={loading}
+        emptyMessage="No settlement records found matching your criteria."
+        
+        search={{ value: search, placeholder: 'Search settlement number / reference...' }}
+        onSearchChange={setSearch}
+        
+        filterConfig={filterConfig}
+        filters={filters}
+        onFilterChange={setFilters}
+        onClearFilters={handleClearFilters}
+        
+        sorting={{ sortBy, sortOrder }}
+        onSortChange={setSort}
 
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#d4af37] outline-none font-medium"
-          >
-            <option value="">All Payout Statuses</option>
-            <option value="PENDING">Pending Payout</option>
-            <option value="PROCESSING">Processing</option>
-            <option value="PAID">Paid</option>
-            <option value="FAILED">Failed</option>
-          </select>
-        </div>
-        <button
-          onClick={fetchSettlements}
-          className="p-2 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600"
-          title="Refresh"
-        >
-          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-        </button>
-      </div>
-
-      {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-600">
-            <thead className="bg-gray-50 border-b border-gray-100 text-gray-400 uppercase text-xs font-semibold">
-              <tr>
-                <th className="px-6 py-4">Settlement #</th>
-                <th className="px-6 py-4">Partner Name</th>
-                <th className="px-6 py-4">Period</th>
-                <th className="px-6 py-4 text-center">Orders</th>
-                <th className="px-6 py-4 text-center">Gross</th>
-                <th className="px-6 py-4 text-center">Commission / Tax</th>
-                <th className="px-6 py-4 text-center">Net Payout</th>
-                <th className="px-6 py-4 text-center">Status</th>
-                <th className="px-6 py-4 text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {loading ? (
-                <tr>
-                  <td colSpan="9" className="px-6 py-8 text-center text-gray-400">Loading settlements...</td>
-                </tr>
-              ) : settlements.length === 0 ? (
-                <tr>
-                  <td colSpan="9" className="px-6 py-8 text-center text-gray-400">No settlement records found.</td>
-                </tr>
-              ) : (
-                settlements.map((s) => (
-                  <tr key={s._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-slate-800 font-mono text-xs">
-                      {s.settlementNumber}
-                    </td>
-                    <td className="px-6 py-4 font-medium text-slate-700">
-                      {s.entityType === 'RESTAURANT' ? s.restaurantId?.restaurantName || s.restaurantId?.name || 'Restaurant' : s.deliveryPartnerId?.fullName || 'Rider'}
-                      <div className="text-xs text-gray-400 font-semibold">{s.entityType}</div>
-                    </td>
-                    <td className="px-6 py-4 text-slate-500 font-medium whitespace-nowrap text-xs">
-                      {formatDate(s.periodStart)} – {formatDate(s.periodEnd)}
-                    </td>
-                    <td className="px-6 py-4 text-center font-bold text-slate-700">
-                      {s.totalOrdersCount}
-                    </td>
-                    <td className="px-6 py-4 text-center font-bold text-slate-800">
-                      ₹{s.grossEarnings}
-                    </td>
-                    <td className="px-6 py-4 text-center font-semibold text-red-600 text-xs">
-                      -₹{(s.platformCommissionDeduction || 0) + (s.taxDeduction || 0) + (s.refundDeduction || 0)}
-                    </td>
-                    <td className="px-6 py-4 text-center font-bold text-emerald-700 text-base">
-                      ₹{s.netPayoutAmount}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      {getStatusBadge(s.status)}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => handleOpenDetail(s._id)}
-                          className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="View Details"
-                        >
-                          <Eye size={16} />
-                        </button>
-
-                        {s.status === 'PENDING' && (
-                          <button
-                            onClick={() => handleProcessSettlement(s._id)}
-                            disabled={processing}
-                            className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
-                          >
-                            Process
-                          </button>
-                        )}
-
-                        {(s.status === 'PENDING' || s.status === 'PROCESSING') && (
-                          <button
-                            onClick={() => setPayoutModal({ open: true, settlement: s, ref: '', notes: '' })}
-                            disabled={processing}
-                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
-                          >
-                            Mark Paid
-                          </button>
-                        )}
-
-                        {s.status === 'PROCESSING' && (
-                          <button
-                            onClick={() => setFailModal({ open: true, settlement: s, reason: '', notes: '' })}
-                            disabled={processing}
-                            className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
-                          >
-                            Fail
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+        pagination={{ page, limit, total }}
+        onPageChange={setPage}
+        onLimitChange={setLimit}
+      />
 
       {/* Generate Settlement Modal */}
       {genModalOpen && (
         <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden p-6 space-y-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden p-6 space-y-4 animate-fadeIn">
             <div className="flex items-center justify-between border-b pb-3">
               <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <Landmark className="text-[#d4af37]" size={22} /> Generate Partner Settlement
               </h2>
-              <button onClick={() => setGenModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setGenModalOpen(false)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
                 <X size={20} />
               </button>
             </div>
@@ -500,14 +560,14 @@ const SuperAdminSettlements = () => {
                 <button
                   type="button"
                   onClick={() => setGenModalOpen(false)}
-                  className="flex-1 py-2.5 border border-gray-200 text-gray-700 font-bold text-xs rounded-xl hover:bg-gray-50"
+                  className="flex-1 py-2.5 border border-gray-200 text-gray-700 font-bold text-xs rounded-xl hover:bg-gray-50 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={genLoading}
-                  className="flex-1 py-2.5 bg-[#d4af37] text-white font-bold text-xs rounded-xl hover:bg-[#b5952f] disabled:opacity-50"
+                  className="flex-1 py-2.5 bg-[#d4af37] text-white font-bold text-xs rounded-xl hover:bg-[#b5952f] disabled:opacity-50 cursor-pointer"
                 >
                   {genLoading ? 'Calculating...' : 'Generate Statement'}
                 </button>
@@ -520,7 +580,7 @@ const SuperAdminSettlements = () => {
       {/* Payout Modal */}
       {payoutModal.open && (
         <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden p-6 space-y-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden p-6 space-y-4 animate-fadeIn">
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
               <Landmark className="text-emerald-600" size={20} /> Mark Settlement Paid
             </h2>
@@ -556,14 +616,14 @@ const SuperAdminSettlements = () => {
                 <button
                   type="button"
                   onClick={() => setPayoutModal({ open: false, settlement: null, ref: '', notes: '' })}
-                  className="flex-1 py-2.5 border border-gray-200 text-gray-700 font-bold text-xs rounded-xl hover:bg-gray-50"
+                  className="flex-1 py-2.5 border border-gray-200 text-gray-700 font-bold text-xs rounded-xl hover:bg-gray-50 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={processing}
-                  className="flex-1 py-2.5 bg-emerald-600 text-white font-bold text-xs rounded-xl hover:bg-emerald-700 disabled:opacity-50"
+                  className="flex-1 py-2.5 bg-emerald-600 text-white font-bold text-xs rounded-xl hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
                 >
                   {processing ? 'Saving...' : 'Confirm Payout'}
                 </button>
@@ -576,7 +636,7 @@ const SuperAdminSettlements = () => {
       {/* Fail Modal */}
       {failModal.open && (
         <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden p-6 space-y-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden p-6 space-y-4 animate-fadeIn">
             <h2 className="text-xl font-bold text-red-600 flex items-center gap-2">
               <AlertCircle size={20} /> Mark Settlement Failed
             </h2>
@@ -598,14 +658,14 @@ const SuperAdminSettlements = () => {
                 <button
                   type="button"
                   onClick={() => setFailModal({ open: false, settlement: null, reason: '', notes: '' })}
-                  className="flex-1 py-2.5 border border-gray-200 text-gray-700 font-bold text-xs rounded-xl hover:bg-gray-50"
+                  className="flex-1 py-2.5 border border-gray-200 text-gray-700 font-bold text-xs rounded-xl hover:bg-gray-50 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={processing}
-                  className="flex-1 py-2.5 bg-red-600 text-white font-bold text-xs rounded-xl hover:bg-red-700 disabled:opacity-50"
+                  className="flex-1 py-2.5 bg-red-600 text-white font-bold text-xs rounded-xl hover:bg-red-700 disabled:opacity-50 cursor-pointer"
                 >
                   {processing ? 'Saving...' : 'Confirm Failure'}
                 </button>
@@ -618,12 +678,12 @@ const SuperAdminSettlements = () => {
       {/* Detail Modal */}
       {detailModal.open && (
         <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-4 animate-fadeIn">
             <div className="flex items-center justify-between border-b pb-3">
               <h2 className="text-xl font-bold text-slate-800">
                 Settlement Statement: <span className="font-mono text-emerald-700">{detailModal.settlement?.settlementNumber}</span>
               </h2>
-              <button onClick={() => setDetailModal({ open: false, settlement: null, loading: false })} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setDetailModal({ open: false, settlement: null, loading: false })} className="text-gray-400 hover:text-gray-600 cursor-pointer">
                 <X size={20} />
               </button>
             </div>

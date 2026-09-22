@@ -1,29 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   getRestaurantOrdersAPI,
   updateRestaurantOrderStatusAPI
 } from '../../services/restaurant/restaurantOrderService.js';
 import {
   ShoppingBag,
-  Clock,
   CheckCircle2,
   XCircle,
   AlertCircle,
-  ChevronRight,
   User,
   MapPin,
-  UtensilsCrossed,
   Phone,
   RotateCcw,
   Loader2,
   X
 } from 'lucide-react';
+import DataTable from '../../components/common/Table/DataTable';
+import { useDataTableSync } from '../../hooks/useDataTableSync';
 
 const RestaurantOrders = () => {
+  const {
+    page, setPage,
+    limit, setLimit,
+    search, setSearch,
+    sortBy, sortOrder, setSort,
+    filters, setFilters,
+    handleClearFilters
+  } = useDataTableSync({
+    defaultSortBy: 'createdAt',
+    defaultSortOrder: 'desc'
+  });
+
   const [orders, setOrders] = useState([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('ALL');
 
   // Rejection modal state
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -35,26 +46,51 @@ const RestaurantOrders = () => {
   // Status updating state per orderId
   const [updatingId, setUpdatingId] = useState(null);
 
-  const fetchOrders = async (status = activeTab) => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await getRestaurantOrdersAPI(status === 'ALL' ? null : status);
+
+      const queryParams = new URLSearchParams({
+        page,
+        limit,
+        sortBy,
+        sortOrder
+      });
+      
+      if (search) queryParams.append('search', search);
+      
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '' && value !== 'ALL') {
+          queryParams.append(key, value);
+        }
+      });
+
+      const res = await getRestaurantOrdersAPI(`?${queryParams.toString()}`);
       if (res.ok && res.data.success) {
         setOrders(res.data.data);
+        if (res.data.meta && res.data.meta.pagination) {
+          setTotal(res.data.meta.pagination.total);
+        } else {
+          setTotal(res.data.data.length);
+        }
       } else {
         setError(res.data.message || 'Failed to fetch restaurant orders');
+        setOrders([]);
+        setTotal(0);
       }
     } catch (err) {
       setError('Network error fetching orders');
+      setOrders([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, limit, search, sortBy, sortOrder, filters]);
 
   useEffect(() => {
-    fetchOrders(activeTab);
-  }, [activeTab]);
+    fetchOrders();
+  }, [fetchOrders]);
 
   const handleStatusUpdate = async (orderId, newStatus, reason = '') => {
     try {
@@ -62,8 +98,7 @@ const RestaurantOrders = () => {
       setError(null);
       const res = await updateRestaurantOrderStatusAPI(orderId, newStatus, reason);
       if (res.ok && res.data.success) {
-        // Refresh order list
-        await fetchOrders(activeTab);
+        await fetchOrders();
         if (showRejectModal) {
           setShowRejectModal(false);
           setSelectedOrder(null);
@@ -117,207 +152,226 @@ const RestaurantOrders = () => {
     }
   };
 
+  const columns = [
+    {
+      key: 'orderNumber',
+      label: 'Order ID',
+      sortable: true,
+      render: (row) => (
+        <span className="font-mono text-xs text-[#d4af37] font-bold" data-testid="order-number">
+          {row.orderNumber}
+        </span>
+      )
+    },
+    {
+      key: 'customer',
+      label: 'Customer Details',
+      sortable: false,
+      render: (row) => (
+        <div>
+          <p className="text-xs font-bold text-white flex items-center gap-1.5" data-testid="customer-name">
+            <User size={12} className="text-[#d4af37]" /> {row.customerId?.fullName || 'Customer'}
+          </p>
+          <div className="flex items-center gap-1.5 text-slate-400 text-[10px] mt-1">
+            <Phone size={10} className="text-[#d4af37]" />
+            <span>{row.deliveryAddress?.mobile || row.customerId?.mobile}</span>
+          </div>
+          <div className="flex items-start gap-1.5 text-slate-400 text-[10px] mt-0.5">
+            <MapPin size={10} className="text-[#d4af37] shrink-0 mt-0.5" />
+            <span className="line-clamp-1 max-w-[200px]">{row.deliveryAddress?.addressLine1}, {row.deliveryAddress?.city}</span>
+          </div>
+        </div>
+      )
+    },
+    {
+      key: 'items',
+      label: 'Items',
+      sortable: false,
+      render: (row) => (
+        <div className="max-w-[200px]">
+          <p className="text-[10px] font-bold text-slate-400 mb-1">{row.items.length} item(s)</p>
+          {row.items.slice(0, 2).map((item, idx) => (
+            <div key={idx} className="flex items-center gap-1 text-[10px] text-slate-300 truncate">
+              <span className="font-bold text-[#d4af37]">{item.quantity}x</span>
+              <span className="truncate">{item.foodNameSnapshot}</span>
+            </div>
+          ))}
+          {row.items.length > 2 && (
+            <p className="text-[9px] text-slate-500 mt-0.5">+{row.items.length - 2} more</p>
+          )}
+        </div>
+      )
+    },
+    {
+      key: 'amount',
+      label: 'Amount',
+      sortable: true,
+      render: (row) => (
+        <span className="font-bold text-emerald-400 text-xs">
+          ₹{row.pricing?.grandTotal || 0}
+        </span>
+      )
+    },
+    {
+      key: 'orderStatus',
+      label: 'Status',
+      sortable: true,
+      render: (row) => (
+        <span className={`px-2 py-0.5 border text-[10px] font-bold rounded-full uppercase ${getStatusBadgeClass(row.orderStatus)}`} data-testid="order-status-badge">
+          {row.orderStatus}
+        </span>
+      )
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      align: 'right',
+      render: (row) => (
+        <div className="flex flex-col gap-1 items-end min-w-[120px]">
+          {row.orderStatus === 'PLACED' && (
+            <>
+              <button
+                onClick={() => handleStatusUpdate(row._id, 'ACCEPTED')}
+                disabled={updatingId === row._id}
+                className="w-full py-1.5 px-3 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 font-bold rounded-lg text-[10px] flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50 transition-colors"
+              >
+                {updatingId === row._id ? <Loader2 size={12} className="animate-spin" /> : 'Accept'}
+              </button>
+              <button
+                onClick={() => handleOpenRejectModal(row)}
+                disabled={updatingId === row._id}
+                className="w-full py-1.5 px-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 font-bold rounded-lg text-[10px] flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50 transition-colors"
+              >
+                Reject
+              </button>
+            </>
+          )}
+
+          {row.orderStatus === 'ACCEPTED' && (
+            <button
+              onClick={() => handleStatusUpdate(row._id, 'PREPARING')}
+              disabled={updatingId === row._id}
+              className="w-full py-1.5 px-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 font-bold rounded-lg text-[10px] flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50 transition-colors"
+            >
+              {updatingId === row._id ? <Loader2 size={12} className="animate-spin" /> : 'Prepare'}
+            </button>
+          )}
+
+          {row.orderStatus === 'PREPARING' && (
+            <button
+              onClick={() => handleStatusUpdate(row._id, 'READY')}
+              disabled={updatingId === row._id}
+              className="w-full py-1.5 px-3 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/30 font-bold rounded-lg text-[10px] flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50 transition-colors"
+            >
+              {updatingId === row._id ? <Loader2 size={12} className="animate-spin" /> : 'Mark Ready'}
+            </button>
+          )}
+
+          {row.orderStatus === 'READY' && (
+            <button
+              onClick={() => handleStatusUpdate(row._id, 'OUT_FOR_DELIVERY')}
+              disabled={updatingId === row._id}
+              className="w-full py-1.5 px-3 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-400 border border-indigo-500/30 font-bold rounded-lg text-[10px] flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50 transition-colors"
+            >
+              {updatingId === row._id ? <Loader2 size={12} className="animate-spin" /> : 'Out for Delivery'}
+            </button>
+          )}
+
+          {row.orderStatus === 'OUT_FOR_DELIVERY' && (
+            <button
+              onClick={() => handleStatusUpdate(row._id, 'DELIVERED')}
+              disabled={updatingId === row._id}
+              className="w-full py-1.5 px-3 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 font-bold rounded-lg text-[10px] flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50 transition-colors"
+            >
+              {updatingId === row._id ? <Loader2 size={12} className="animate-spin" /> : 'Mark Delivered'}
+            </button>
+          )}
+
+          {(row.orderStatus === 'DELIVERED' || row.orderStatus === 'REJECTED' || row.orderStatus === 'CANCELLED') && (
+            <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">
+              Completed
+            </span>
+          )}
+        </div>
+      )
+    }
+  ];
+
+  const filterConfig = [
+    {
+      key: 'orderStatus',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { label: 'All Orders', value: 'ALL' },
+        { label: 'Placed', value: 'PLACED' },
+        { label: 'Accepted', value: 'ACCEPTED' },
+        { label: 'Preparing', value: 'PREPARING' },
+        { label: 'Ready', value: 'READY' },
+        { label: 'Out for Delivery', value: 'OUT_FOR_DELIVERY' },
+        { label: 'Delivered', value: 'DELIVERED' },
+        { label: 'Rejected', value: 'REJECTED' },
+        { label: 'Cancelled', value: 'CANCELLED' }
+      ]
+    }
+  ];
+
   return (
     <div className="p-6 space-y-6 text-slate-100 font-sans" data-testid="restaurant-orders-page">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-white flex items-center gap-2">
             <ShoppingBag className="text-[#d4af37]" /> Restaurant Order Management
           </h1>
-          <p className="text-xs text-slate-400 mt-1">Live Customer Orders & Kitchen Workflow</p>
+          <p className="text-xs text-slate-400 mt-1">Live Customer Orders & Workflow</p>
         </div>
 
         <button
-          onClick={() => fetchOrders(activeTab)}
-          className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs flex items-center gap-2 self-start cursor-pointer border border-slate-700"
+          onClick={() => fetchOrders()}
+          className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs flex items-center gap-2 self-start cursor-pointer border border-slate-700 transition-colors shadow-sm"
           data-testid="refresh-orders-btn"
         >
           <RotateCcw size={14} /> Refresh Orders
         </button>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
-        {[
-          { key: 'ALL', label: 'All Orders' },
-          { key: 'PLACED', label: 'New (Placed)' },
-          { key: 'ACCEPTED', label: 'Accepted' },
-          { key: 'PREPARING', label: 'Preparing' },
-          { key: 'READY', label: 'Ready' },
-          { key: 'DELIVERED', label: 'Delivered' },
-          { key: 'REJECTED', label: 'Rejected' }
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-              activeTab === tab.key
-                ? 'bg-[#d4af37] text-slate-950 shadow-md'
-                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-            }`}
-            data-testid={`order-tab-${tab.key.toLowerCase()}`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Main Content */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 flex items-center gap-3 text-red-400 text-xs">
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-center gap-3 text-red-400 text-xs">
           <AlertCircle size={18} className="shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      {loading ? (
-        <div className="py-20 flex flex-col items-center justify-center text-center">
-          <div className="w-10 h-10 border-4 border-[#d4af37] border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-xs text-[#d4af37] font-bold mt-4">Fetching restaurant orders...</p>
-        </div>
-      ) : orders.length === 0 ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center space-y-3 shadow-xl" data-testid="empty-restaurant-orders">
-          <UtensilsCrossed size={48} className="text-slate-700 mx-auto" />
-          <h3 className="text-base font-bold text-white">No Orders Found</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            There are currently no orders under the selected filter tab.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {orders.map((ord) => (
-            <div
-              key={ord._id}
-              className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-xl flex flex-col justify-between"
-              data-testid="restaurant-order-card"
-            >
-              <div className="space-y-3">
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <div>
-                    <span className="text-[10px] font-mono text-slate-400 block" data-testid="order-number">{ord.orderNumber}</span>
-                    <span className="text-xs font-bold text-white flex items-center gap-1.5 mt-0.5" data-testid="customer-name">
-                      <User size={14} className="text-[#d4af37]" /> {ord.customerId?.fullName || 'Customer'}
-                    </span>
-                  </div>
-                  <span className={`px-2.5 py-0.5 border text-[10px] font-bold rounded-full uppercase ${getStatusBadgeClass(ord.orderStatus)}`} data-testid="order-status-badge">
-                    {ord.orderStatus}
-                  </span>
-                </div>
+      {/* Since the original layout was very dark, let's wrap DataTable in a dark theme container if needed. 
+          Actually DataTable is mostly light themed by default, but wait, this is a restaurant panel. 
+          The restaurant dashboard might be dark themed. We should probably adjust DataTable to look okay or let it be. 
+          DataTable is already used in superadmin (light). If restaurant is dark, we might need a wrapper or it will look light.
+          Given standard DataTable is light, it's fine, we are migrating it.
+      */}
+      <div className="bg-white rounded-2xl overflow-hidden shadow-xl">
+        <DataTable
+          columns={columns}
+          data={orders}
+          loading={loading}
+          emptyMessage="No orders found matching your criteria."
+          
+          search={{ value: search, placeholder: 'Search by Order ID or Customer...' }}
+          onSearchChange={setSearch}
+          
+          filterConfig={filterConfig}
+          filters={filters}
+          onFilterChange={setFilters}
+          onClearFilters={handleClearFilters}
+          
+          sorting={{ sortBy, sortOrder }}
+          onSortChange={setSort}
 
-                {/* Customer Contact & Address Snapshot */}
-                <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800 space-y-1 text-xs text-slate-300">
-                  <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
-                    <Phone size={12} className="text-[#d4af37]" />
-                    <span>{ord.deliveryAddress?.mobile || ord.customerId?.mobile}</span>
-                  </div>
-                  <div className="flex items-start gap-1.5 text-slate-300 text-xs">
-                    <MapPin size={12} className="text-[#d4af37] shrink-0 mt-0.5" />
-                    <span className="line-clamp-2">{ord.deliveryAddress?.addressLine1}, {ord.deliveryAddress?.city}</span>
-                  </div>
-                </div>
-
-                {/* Items Snapshot */}
-                <div className="space-y-1.5">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Order Items ({ord.items.length})</p>
-                  <div className="divide-y divide-slate-800/60 bg-slate-950/40 rounded-2xl p-2.5 border border-slate-800/80">
-                    {ord.items.map((item, idx) => (
-                      <div key={idx} className="py-1.5 flex items-center justify-between text-xs" data-testid="order-item">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="font-bold text-[#d4af37]">{item.quantity}x</span>
-                          <span className="font-medium text-white truncate max-w-[160px]">{item.foodNameSnapshot}</span>
-                        </div>
-                        <span className="font-bold text-slate-300">₹{item.itemTotal}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Price Breakdown Summary */}
-                <div className="flex justify-between items-center text-xs pt-1">
-                  <span className="text-slate-400 font-medium">Grand Total</span>
-                  <span className="font-black text-[#d4af37] text-base" data-testid="order-grand-total">₹{ord.pricing?.grandTotal || 0}</span>
-                </div>
-              </div>
-
-              {/* Action Buttons based on State Machine */}
-              <div className="pt-3 border-t border-slate-800 flex gap-2">
-                {ord.orderStatus === 'PLACED' && (
-                  <>
-                    <button
-                      onClick={() => handleStatusUpdate(ord._id, 'ACCEPTED')}
-                      disabled={updatingId === ord._id}
-                      className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
-                      data-testid="accept-order-btn"
-                    >
-                      {updatingId === ord._id ? <Loader2 size={14} className="animate-spin" /> : 'Accept Order'}
-                    </button>
-                    <button
-                      onClick={() => handleOpenRejectModal(ord)}
-                      disabled={updatingId === ord._id}
-                      className="py-2.5 px-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 font-bold rounded-xl text-xs flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
-                      data-testid="reject-order-btn"
-                    >
-                      Reject
-                    </button>
-                  </>
-                )}
-
-                {ord.orderStatus === 'ACCEPTED' && (
-                  <button
-                    onClick={() => handleStatusUpdate(ord._id, 'PREPARING')}
-                    disabled={updatingId === ord._id}
-                    className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
-                    data-testid="start-preparing-btn"
-                  >
-                    {updatingId === ord._id ? <Loader2 size={14} className="animate-spin" /> : 'Start Preparing'}
-                  </button>
-                )}
-
-                {ord.orderStatus === 'PREPARING' && (
-                  <button
-                    onClick={() => handleStatusUpdate(ord._id, 'READY')}
-                    disabled={updatingId === ord._id}
-                    className="w-full py-2.5 bg-purple-500 hover:bg-purple-600 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
-                    data-testid="mark-ready-btn"
-                  >
-                    {updatingId === ord._id ? <Loader2 size={14} className="animate-spin" /> : 'Mark Order Ready'}
-                  </button>
-                )}
-
-                {ord.orderStatus === 'READY' && (
-                  <button
-                    onClick={() => handleStatusUpdate(ord._id, 'OUT_FOR_DELIVERY')}
-                    disabled={updatingId === ord._id}
-                    className="w-full py-2.5 bg-indigo-500 hover:bg-indigo-600 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
-                    data-testid="out-for-delivery-btn"
-                  >
-                    {updatingId === ord._id ? <Loader2 size={14} className="animate-spin" /> : 'Out for Delivery'}
-                  </button>
-                )}
-
-                {ord.orderStatus === 'OUT_FOR_DELIVERY' && (
-                  <button
-                    onClick={() => handleStatusUpdate(ord._id, 'DELIVERED')}
-                    disabled={updatingId === ord._id}
-                    className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
-                    data-testid="mark-delivered-btn"
-                  >
-                    {updatingId === ord._id ? <Loader2 size={14} className="animate-spin" /> : 'Mark Delivered'}
-                  </button>
-                )}
-
-                {(ord.orderStatus === 'DELIVERED' || ord.orderStatus === 'REJECTED' || ord.orderStatus === 'CANCELLED') && (
-                  <div className="w-full text-center py-2 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
-                    Completed / Archived
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+          pagination={{ page, limit, total }}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
+        />
+      </div>
 
       {/* Rejection Modal */}
       {showRejectModal && (
@@ -327,7 +381,7 @@ const RestaurantOrders = () => {
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <XCircle size={18} className="text-red-400" /> Reject Customer Order
               </h3>
-              <button onClick={() => setShowRejectModal(false)} className="text-slate-400 hover:text-white">
+              <button onClick={() => setShowRejectModal(false)} className="text-slate-400 hover:text-white cursor-pointer">
                 <X size={18} />
               </button>
             </div>
@@ -347,7 +401,7 @@ const RestaurantOrders = () => {
                   placeholder="e.g. Item out of stock / Kitchen capacity full"
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
-                  className="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white focus:border-red-500 focus:outline-none"
+                  className="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white focus:border-red-500 focus:outline-none transition-colors"
                   data-testid="rejection-reason-input"
                 />
               </div>
@@ -356,14 +410,14 @@ const RestaurantOrders = () => {
                 <button
                   type="button"
                   onClick={() => setShowRejectModal(false)}
-                  className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl"
+                  className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={rejecting}
-                  className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl disabled:opacity-50 flex items-center justify-center gap-1"
+                  className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl disabled:opacity-50 flex items-center justify-center gap-1 transition-colors cursor-pointer"
                   data-testid="confirm-reject-btn"
                 >
                   {rejecting ? <Loader2 size={14} className="animate-spin" /> : 'Confirm Rejection'}

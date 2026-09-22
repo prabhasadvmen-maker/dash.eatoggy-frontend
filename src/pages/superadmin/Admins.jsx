@@ -1,14 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { Trash2, ShieldAlert, Settings, Eye, Edit, UserPlus, LogIn, ToggleRight, ToggleLeft } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Trash2, ShieldAlert, Eye, Edit, UserPlus, LogIn, ToggleRight, ToggleLeft } from 'lucide-react';
 import API_BASE_URL from '../../services/apiService';
 import ConfirmModal from '../../components/common/ConfirmModal/ConfirmModal';
+import DataTable from '../../components/common/Table/DataTable';
+import { useDataTableSync } from '../../hooks/useDataTableSync';
 
 const Admins = () => {
+  const {
+    page, setPage,
+    limit, setLimit,
+    search, setSearch,
+    sortBy, sortOrder, setSort,
+    filters, setFilters,
+    handleClearFilters
+  } = useDataTableSync({
+    defaultSortBy: 'createdAt',
+    defaultSortOrder: 'desc'
+  });
+
   const [admins, setAdmins] = useState([]);
-  const [openDropdownId, setOpenDropdownId] = useState(null);
-  const [modalState, setModalState] = useState({ isOpen: false, type: 'add', adminId: null });
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  const [modalState, setModalState] = useState({ isOpen: false, type: 'add', adminId: null });
   const [submitError, setSubmitError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
@@ -25,21 +40,56 @@ const Admins = () => {
 
   const currentUser = JSON.parse(localStorage.getItem('superadmin_user') || '{}');
 
-  useEffect(() => {
-    fetchAdmins();
-  }, []);
-
-  const fetchAdmins = async () => {
+  const fetchAdmins = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admins`, {
+      setLoading(true);
+      setError('');
+      
+      const queryParams = new URLSearchParams({
+        page,
+        limit,
+        sortBy,
+        sortOrder
+      });
+      
+      if (search) queryParams.append('search', search);
+      
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          queryParams.append(key, value);
+        }
+      });
+
+      const response = await fetch(`${API_BASE_URL}/api/admins?${queryParams.toString()}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('superadmin_token')}`
         }
       });
+      
       if (response.ok) {
-        const data = await response.json();
-        const filteredData = data.filter(admin => admin._id !== currentUser.id);
-        setAdmins(filteredData);
+        const result = await response.json();
+        
+        let fetchedData = [];
+        let fetchedTotal = 0;
+
+        if (result.data) {
+           fetchedData = result.data;
+           if (result.meta && result.meta.pagination) {
+             fetchedTotal = result.meta.pagination.total;
+           } else {
+             fetchedTotal = fetchedData.length;
+           }
+        } else if (Array.isArray(result)) {
+           // fallback just in case backend didn't update properly
+           fetchedData = result;
+           fetchedTotal = result.length;
+        }
+
+        // We could filter currentUser out on frontend, but for total count accuracy, 
+        // it's better if it's done via backend. Assuming it's fine for now, we'll mark the user row as disabled.
+        
+        setAdmins(fetchedData);
+        setTotal(fetchedTotal);
       } else if (response.status === 401) {
         localStorage.removeItem('superadmin_token');
         localStorage.removeItem('superadmin_user');
@@ -52,7 +102,11 @@ const Admins = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, limit, search, sortBy, sortOrder, filters]);
+
+  useEffect(() => {
+    fetchAdmins();
+  }, [fetchAdmins]);
 
   const openModal = (type, admin = null) => {
     if (admin) {
@@ -67,7 +121,6 @@ const Admins = () => {
     }
     setSubmitError('');
     setModalState({ isOpen: true, type, adminId: admin ? admin._id : null });
-    setOpenDropdownId(null);
   };
 
   const handleInputChange = (e) => {
@@ -102,12 +155,8 @@ const Admins = () => {
       const data = await response.json();
 
       if (response.ok) {
-        if (isEdit) {
-          setAdmins(admins.map(a => a._id === data._id ? data : a));
-        } else {
-          setAdmins([data, ...admins]);
-        }
         setModalState({ isOpen: false, type: 'add', adminId: null });
+        fetchAdmins();
       } else {
         setSubmitError(data.message || `Failed to ${isEdit ? 'update' : 'create'} admin`);
       }
@@ -122,7 +171,6 @@ const Admins = () => {
       return;
     }
     setConfirmModal({ open: true, id });
-    setOpenDropdownId(null);
   };
 
   const handleDelete = async () => {
@@ -138,14 +186,14 @@ const Admins = () => {
       });
 
       if (response.ok) {
-        setAdmins(admins.filter(admin => admin._id !== id));
+        setConfirmModal({ open: false, id: null });
+        fetchAdmins();
       } else {
         alert('Failed to delete admin');
       }
     } catch (err) {
       alert('Network error while deleting admin');
     }
-    setConfirmModal({ open: false, id: null });
   };
 
   const handleToggleStatus = async (id, currentStatus) => {
@@ -163,9 +211,7 @@ const Admins = () => {
       });
 
       if (response.ok) {
-        setAdmins(admins.map(admin => 
-          admin._id === id ? { ...admin, isActive: !currentStatus } : admin
-        ));
+        fetchAdmins();
       } else {
         alert('Failed to update status');
       }
@@ -198,17 +244,146 @@ const Admins = () => {
     return new Date(dateString).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
+  const columns = [
+    {
+      key: 'name',
+      label: 'Name',
+      sortable: true,
+      render: (row) => (
+        <span className="font-bold text-slate-800">
+          {row.name || 'N/A'} {row._id === currentUser.id ? '(You)' : ''}
+        </span>
+      )
+    },
+    {
+      key: 'email',
+      label: 'Email',
+      sortable: true,
+      render: (row) => (
+        <span className="text-xs font-medium text-slate-600">
+          {row.email}
+        </span>
+      )
+    },
+    {
+      key: 'role',
+      label: 'Role',
+      sortable: true,
+      render: (row) => (
+        <span className="text-xs font-semibold text-slate-600">
+          {row.role}
+        </span>
+      )
+    },
+    {
+      key: 'isActive',
+      label: 'Status',
+      sortable: true,
+      render: (row) => (
+        <button
+          onClick={() => handleToggleStatus(row._id, row.isActive !== false)}
+          disabled={row._id === currentUser.id}
+          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-colors cursor-pointer ${
+            row.isActive !== false 
+              ? 'bg-[#d4af37]/20 text-[#a58523] hover:bg-[#d4af37]/30' 
+              : 'bg-red-100 text-red-700 hover:bg-red-200'
+          } ${row._id === currentUser.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          {row.isActive !== false ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+          {row.isActive !== false ? 'Active' : 'Inactive'}
+        </button>
+      )
+    },
+    {
+      key: 'lastLogin',
+      label: 'Last Login',
+      sortable: true,
+      render: (row) => (
+        <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
+          {formatDate(row.lastLogin)}
+        </span>
+      )
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      align: 'right',
+      render: (row) => (
+        <div className="flex items-center justify-end space-x-2">
+          <button
+            className="inline-flex items-center gap-1.5 bg-[#1e1e2e] text-[#d4af37] px-2 py-1 rounded-lg text-[10px] font-bold hover:bg-black transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            onClick={() => handleImpersonate(row._id)}
+            disabled={row._id === currentUser.id}
+            title="Login As"
+          >
+            <LogIn size={12} /> Login
+          </button>
+          
+          <button
+            onClick={() => openModal('view', row)}
+            className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
+            title="View"
+          >
+            <Eye size={16} />
+          </button>
+          
+          <button
+            onClick={() => openModal('edit', row)}
+            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors"
+            title="Edit"
+          >
+            <Edit size={16} />
+          </button>
+          
+          <button
+            onClick={() => confirmDelete(row._id)}
+            disabled={row._id === currentUser.id}
+            className={`p-1.5 rounded-lg cursor-pointer transition-colors ${
+              row._id === currentUser.id ? 'text-gray-300' : 'text-red-600 hover:bg-red-50'
+            }`}
+            title={row._id === currentUser.id ? "Cannot delete yourself" : "Delete"}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      )
+    }
+  ];
+
+  const filterConfig = [
+    {
+      key: 'isActive',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { label: 'Active', value: 'true' },
+        { label: 'Inactive', value: 'false' }
+      ]
+    },
+    {
+      key: 'role',
+      label: 'Role',
+      type: 'select',
+      options: [
+        { label: 'SuperAdmin', value: 'SuperAdmin' },
+        { label: 'Admin', value: 'Admin' },
+        { label: 'Manager', value: 'Manager' },
+        { label: 'Support', value: 'Support' }
+      ]
+    }
+  ];
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Admins</h1>
-          <p className="text-slate-400 mt-1">{admins.length} admin{admins.length !== 1 ? 's' : ''} registered</p>
+          <p className="text-slate-400 mt-1">{total} admin{total !== 1 ? 's' : ''} registered</p>
         </div>
         <button
           onClick={() => openModal('add')}
-          className="inline-flex items-center gap-2 bg-[#1e1e2e] text-[#d4af37] px-5 py-2.5 rounded-xl hover:bg-black transition-colors font-medium shadow-sm"
+          className="inline-flex items-center gap-2 bg-[#1e1e2e] text-[#d4af37] px-5 py-2.5 rounded-xl hover:bg-black transition-colors font-medium shadow-sm cursor-pointer"
         >
           <UserPlus size={18} />
           Add Admin
@@ -223,140 +398,53 @@ const Admins = () => {
       )}
 
       {/* Table Section */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-600">
-            <thead className="bg-gray-50 border-b border-gray-100 text-gray-400 uppercase text-xs font-semibold">
-              <tr>
-                <th className="px-6 py-4">#</th>
-                <th className="px-6 py-4">Name</th>
-                <th className="px-6 py-4">Email</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Last Login</th>
-                <th className="px-6 py-4">Created</th>
-                <th className="px-6 py-4 text-center">Login As</th>
-                <th className="px-6 py-4 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {loading ? (
-                <tr>
-                  <td colSpan="8" className="px-6 py-8 text-center text-gray-400">Loading admins...</td>
-                </tr>
-              ) : admins.length === 0 ? (
-                <tr>
-                  <td colSpan="8" className="px-6 py-8 text-center text-gray-400">No admins found.</td>
-                </tr>
-              ) : (
-                admins.map((admin, index) => (
-                  <tr key={admin._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-slate-400 font-medium">
-                      {index + 1}
-                    </td>
-                    <td className="px-6 py-4 font-bold text-slate-800">
-                      {admin.name || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 text-slate-500 font-medium">
-                      {admin.email}
-                    </td>
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={() => handleToggleStatus(admin._id, admin.isActive !== false)}
-                        disabled={admin._id === currentUser.id}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-colors ${
-                          admin.isActive !== false 
-                            ? 'bg-[#d4af37]/20 text-[#a58523] hover:bg-[#d4af37]/30' 
-                            : 'bg-red-100 text-red-700 hover:bg-red-200'
-                        } ${admin._id === currentUser.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        {admin.isActive !== false ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
-                        {admin.isActive !== false ? 'Active' : 'Inactive'}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 text-slate-400 font-medium whitespace-nowrap">
-                      {formatDate(admin.lastLogin)}
-                    </td>
-                    <td className="px-6 py-4 text-slate-400 font-medium whitespace-nowrap">
-                      {formatDate(admin.createdAt)}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <button
-                        className="inline-flex items-center gap-1.5 bg-[#1e1e2e] text-[#d4af37] px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-black transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        onClick={() => handleImpersonate(admin._id)}
-                        disabled={admin._id === currentUser.id}
-                      >
-                        <LogIn size={14} /> Login
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 text-center relative">
-                      <button
-                        onClick={() => setOpenDropdownId(openDropdownId === admin._id ? null : admin._id)}
-                        className="text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-lg hover:bg-gray-100"
-                        title="Actions"
-                      >
-                        <Settings size={18} />
-                      </button>
-                      
-                      {openDropdownId === admin._id && (
-                        <>
-                          <div 
-                            className="fixed inset-0 z-10" 
-                            onClick={() => setOpenDropdownId(null)}
-                          ></div>
-                          <div className="absolute right-8 top-10 mt-2 w-36 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20 text-left">
-                            <button
-                              onClick={() => openModal('view', admin)}
-                              className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors font-medium"
-                            >
-                              <Eye size={16} className="text-gray-400" /> View
-                            </button>
-                            <button
-                              onClick={() => openModal('edit', admin)}
-                              className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors font-medium"
-                            >
-                              <Edit size={16} className="text-gray-400" /> Edit
-                            </button>
-                            <div className="h-px bg-gray-100 my-1 mx-2"></div>
-                            <button
-                              onClick={() => confirmDelete(admin._id)}
-                              disabled={admin._id === currentUser.id}
-                              className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                              title={admin._id === currentUser.id ? "Cannot delete yourself" : ""}
-                            >
-                              <Trash2 size={16} className="text-red-500" /> Delete
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable
+        columns={columns}
+        data={admins}
+        loading={loading}
+        emptyMessage="No admins found matching your criteria."
+        
+        search={{ value: search, placeholder: 'Search by name or email...' }}
+        onSearchChange={setSearch}
+        
+        filterConfig={filterConfig}
+        filters={filters}
+        onFilterChange={setFilters}
+        onClearFilters={handleClearFilters}
+        
+        sorting={{ sortBy, sortOrder }}
+        onSortChange={setSort}
+
+        pagination={{ page, limit, total }}
+        onPageChange={setPage}
+        onLimitChange={setLimit}
+      />
 
       {/* Dynamic Modal (Add / Edit / View) */}
       {modalState.isOpen && (
-        <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center p-4 z-50 animate-fadeIn">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900">
                 {modalState.type === 'add' ? 'Add New Admin' : modalState.type === 'edit' ? 'Edit Admin' : 'Admin Details'}
               </h2>
-              <button onClick={() => setModalState({ isOpen: false, type: 'add', adminId: null })} className="text-gray-400 hover:text-gray-600 p-2 text-2xl leading-none">&times;</button>
+              <button 
+                onClick={() => setModalState({ isOpen: false, type: 'add', adminId: null })} 
+                className="text-gray-400 hover:text-gray-600 p-2 text-2xl leading-none cursor-pointer"
+              >
+                &times;
+              </button>
             </div>
             
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {submitError && (
-                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm font-semibold">
                   {submitError}
                 </div>
               )}
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Full Name</label>
                 <input
                   type="text"
                   name="name"
@@ -364,13 +452,13 @@ const Admins = () => {
                   onChange={handleInputChange}
                   required
                   disabled={modalState.type === 'view'}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#d4af37] focus:border-transparent outline-none transition-all disabled:opacity-70 disabled:bg-gray-100"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#d4af37] outline-none transition-all disabled:opacity-70 disabled:bg-gray-50 text-xs"
                   placeholder="John Doe"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Email Address</label>
                 <input
                   type="email"
                   name="email"
@@ -378,19 +466,19 @@ const Admins = () => {
                   onChange={handleInputChange}
                   required
                   disabled={modalState.type === 'view'}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#d4af37] focus:border-transparent outline-none transition-all disabled:opacity-70 disabled:bg-gray-100"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#d4af37] outline-none transition-all disabled:opacity-70 disabled:bg-gray-50 text-xs"
                   placeholder="john@eatoggy.com"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Role</label>
                 <select
                   name="role"
                   value={formData.role}
                   onChange={handleInputChange}
                   disabled={modalState.type === 'view'}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#d4af37] focus:border-transparent outline-none transition-all disabled:opacity-70 disabled:bg-gray-100"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#d4af37] outline-none transition-all disabled:opacity-70 disabled:bg-gray-50 text-xs"
                 >
                   <option value="SuperAdmin">SuperAdmin</option>
                   <option value="Admin">Admin</option>
@@ -401,7 +489,7 @@ const Admins = () => {
 
               {modalState.type !== 'view' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
                     {modalState.type === 'edit' ? 'New Password (leave blank to keep current)' : 'Password'}
                   </label>
                   <input
@@ -411,7 +499,7 @@ const Admins = () => {
                     onChange={handleInputChange}
                     required={modalState.type === 'add'}
                     minLength="6"
-                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#d4af37] focus:border-transparent outline-none transition-all"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#d4af37] outline-none transition-all text-xs"
                     placeholder="••••••••"
                   />
                 </div>
@@ -422,7 +510,7 @@ const Admins = () => {
                   <button
                     type="button"
                     onClick={() => setModalState({ isOpen: false, type: 'add', adminId: null })}
-                    className="w-full px-4 py-2.5 bg-[#1e1e2e] text-[#d4af37] font-medium rounded-lg hover:bg-black transition-colors shadow-sm"
+                    className="w-full px-4 py-2.5 bg-[#1e1e2e] text-[#d4af37] font-bold text-xs rounded-xl hover:bg-black transition-colors shadow-sm cursor-pointer"
                   >
                     Close
                   </button>
@@ -431,13 +519,13 @@ const Admins = () => {
                     <button
                       type="button"
                       onClick={() => setModalState({ isOpen: false, type: 'add', adminId: null })}
-                      className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                      className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 font-bold text-xs rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 px-4 py-2.5 bg-[#1e1e2e] text-[#d4af37] font-medium rounded-lg hover:bg-black transition-colors shadow-sm"
+                      className="flex-1 px-4 py-2.5 bg-[#1e1e2e] text-[#d4af37] font-bold text-xs rounded-xl hover:bg-black transition-colors shadow-sm cursor-pointer"
                     >
                       {modalState.type === 'edit' ? 'Save Changes' : 'Create Admin'}
                     </button>

@@ -18,8 +18,8 @@ const handleResponse = async (response) => {
   return response.json();
 };
 
-export const superAdminGetBanners = async () => {
-  const response = await fetch(`${API_BASE_URL}/api/super-admin/banners`, {
+export const superAdminGetBanners = async (params = '') => {
+  const response = await fetch(`${API_BASE_URL}/api/super-admin/banners${params}`, {
     headers: getAuthHeaders()
   });
   return handleResponse(response);

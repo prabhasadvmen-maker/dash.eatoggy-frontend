@@ -1,15 +1,34 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Settings, Eye, CheckCircle2, XCircle, Trash2, Loader2, Store, RefreshCw, X, MapPin, Phone, Mail, FileText, Video, Image as ImageIcon, ToggleLeft, ToggleRight, DollarSign } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Settings, Eye, CheckCircle2, XCircle, Trash2, Store, RefreshCw, X, MapPin, Phone, Mail, FileText, Video, Image as ImageIcon, ToggleLeft, ToggleRight, DollarSign } from 'lucide-react';
 import API_BASE_URL from '../../services/apiService';
 import { getOnboardingFeeSetting, updateOnboardingFeeSetting } from '../../services/superadmin/superAdminRestaurantService';
 import ConfirmModal from '../../components/common/ConfirmModal/ConfirmModal';
+import DataTable from '../../components/common/Table/DataTable';
+import { useDataTableSync } from '../../hooks/useDataTableSync';
 
 const Restaurants = () => {
+  const {
+    page, setPage,
+    limit, setLimit,
+    search, setSearch,
+    sortBy, sortOrder, setSort,
+    filters, setFilters,
+    handleClearFilters
+  } = useDataTableSync({
+    defaultSortBy: 'createdAt',
+    defaultSortOrder: 'desc'
+  });
+
   const [restaurants, setRestaurants] = useState([]);
+  const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('ALL');
+  const [statusCounts, setStatusCounts] = useState({
+    ALL: 0, PENDING: 0, APPROVED: 0, SUSPENDED: 0, REJECTED: 0
+  });
+
   const [activeDropdownId, setActiveDropdownId] = useState(null);
+  const dropdownRef = useRef(null);
   
   // Modal State
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
@@ -29,6 +48,8 @@ const Restaurants = () => {
     open: false,
     id: null
   });
+
+  const activeTab = filters.status || 'ALL';
 
   const getFileType = (url, defaultType = 'image') => {
     if (!url) return 'none';
@@ -104,13 +125,6 @@ const Restaurants = () => {
     );
   };
 
-  const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    fetchRestaurants();
-    fetchFee();
-  }, []);
-
   const fetchFee = async () => {
     try {
       const res = await getOnboardingFeeSetting();
@@ -121,6 +135,65 @@ const Restaurants = () => {
       console.error('Failed to load fee setting');
     }
   };
+
+  const fetchRestaurants = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const token = localStorage.getItem('superadmin_token');
+      const params = new URLSearchParams({
+        page,
+        limit,
+        sortBy,
+        sortOrder
+      });
+      if (search) params.append('search', search);
+      Object.entries(filters).forEach(([key, val]) => {
+        if (val !== undefined && val !== null && val !== '') {
+          params.append(key, val);
+        }
+      });
+
+      const res = await fetch(`${API_BASE_URL}/api/admins/restaurants?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.data) {
+          setRestaurants(data.data);
+          setTotalItems(data.meta?.pagination?.total || data.data.length);
+          if (data.meta?.statusCounts) {
+            setStatusCounts(data.meta.statusCounts);
+          }
+        } else if (Array.isArray(data)) {
+          setRestaurants(data);
+          setTotalItems(data.length);
+        }
+      } else {
+        setError(data.message || 'Failed to fetch restaurants');
+      }
+    } catch (err) {
+      setError('Network error connecting to server');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, limit, search, sortBy, sortOrder, filters]);
+
+  useEffect(() => {
+    fetchRestaurants();
+    fetchFee();
+  }, [fetchRestaurants]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setActiveDropdownId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleUpdateFee = async () => {
     setFeeLoading(true);
@@ -139,37 +212,6 @@ const Restaurants = () => {
     }
   };
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setActiveDropdownId(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const fetchRestaurants = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const token = localStorage.getItem('superadmin_token');
-      const res = await fetch(`${API_BASE_URL}/api/admins/restaurants`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setRestaurants(Array.isArray(data) ? data : []);
-      } else {
-        setError(data.message || 'Failed to fetch restaurants');
-      }
-    } catch (err) {
-      setError('Network error connecting to server');
-    }
-    setLoading(false);
-  };
-
   const handleApprove = async (id) => {
     setActionLoading(true);
     try {
@@ -179,7 +221,7 @@ const Restaurants = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
-        setRestaurants(restaurants.map(r => r._id === id ? { ...r, status: 'APPROVED', rejectionReason: '' } : r));
+        fetchRestaurants();
         setIsModalOpen(false);
         setActiveDropdownId(null);
       } else {
@@ -203,7 +245,7 @@ const Restaurants = () => {
         body: JSON.stringify({ reason: rejectReason })
       });
       if (res.ok) {
-        setRestaurants(restaurants.map(r => r._id === id ? { ...r, status: 'REJECTED', rejectionReason: rejectReason } : r));
+        fetchRestaurants();
         setIsModalOpen(false);
         setRejectReason('');
         setActiveDropdownId(null);
@@ -233,7 +275,7 @@ const Restaurants = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
-        setRestaurants(restaurants.filter(r => r._id !== id));
+        fetchRestaurants();
         setActiveDropdownId(null);
         if (selectedRestaurant && selectedRestaurant._id === id) {
           setIsModalOpen(false);
@@ -259,7 +301,7 @@ const Restaurants = () => {
       });
       const data = await res.json();
       if (res.ok) {
-        setRestaurants(restaurants.map(r => r._id === id ? data.restaurant : r));
+        fetchRestaurants();
         setActiveDropdownId(null);
         if (selectedRestaurant && selectedRestaurant._id === id) {
           setSelectedRestaurant(data.restaurant);
@@ -295,13 +337,16 @@ const Restaurants = () => {
     setActiveDropdownId(prev => prev === id ? null : id);
   };
 
-  const filteredRestaurants = restaurants.filter(r => {
-    if (activeTab === 'PENDING') return r.status === 'PENDING';
-    if (activeTab === 'APPROVED') return r.status === 'APPROVED';
-    if (activeTab === 'SUSPENDED') return r.status === 'SUSPENDED';
-    if (activeTab === 'REJECTED') return r.status === 'REJECTED';
-    return true;
-  });
+  const handleTabChange = (statusKey) => {
+    setPage(1);
+    if (statusKey === 'ALL') {
+      const newFilters = { ...filters };
+      delete newFilters.status;
+      setFilters(newFilters);
+    } else {
+      setFilters({ ...filters, status: statusKey });
+    }
+  };
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -317,6 +362,150 @@ const Restaurants = () => {
         return <span className="px-2.5 py-1 bg-gray-50 text-gray-600 border border-gray-200 rounded-full text-xs font-semibold">{status}</span>;
     }
   };
+
+  const columns = [
+    {
+      key: 'restaurantName',
+      label: 'Restaurant',
+      sortable: true,
+      render: (row) => (
+        <div>
+          <div className="font-bold text-gray-900">{row.restaurantName}</div>
+          <div className="text-xs text-gray-500 mt-0.5">
+            {row.restaurantType} {row.cuisine ? `• ${row.cuisine}` : ''}
+          </div>
+        </div>
+      )
+    },
+    {
+      key: 'ownerName',
+      label: 'Owner Details',
+      sortable: true,
+      render: (row) => (
+        <div>
+          <div className="font-medium text-gray-800 flex items-center gap-1.5">
+            {row.ownerName}
+            {row.isPhoneVerified && <span title="Phone Verified" className="text-emerald-600 text-xs font-semibold">✓ Verified</span>}
+          </div>
+          <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+            <Phone size={12} className="text-gray-400" /> {row.mobile}
+          </div>
+          {row.email && (
+            <div className="text-xs text-gray-400 flex items-center gap-1 mt-0.5 truncate max-w-[200px]">
+              <Mail size={12} className="text-gray-400" /> {row.email}
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
+      key: 'city',
+      label: 'City / Address',
+      sortable: true,
+      render: (row) => (
+        <div>
+          <div className="font-medium text-gray-800 flex items-center gap-1">
+            <MapPin size={14} className="text-gray-400 shrink-0" /> {row.city}
+          </div>
+          <div className="text-xs text-gray-400 truncate max-w-[220px] mt-0.5">
+            {row.fullAddress} {row.pincode ? `- ${row.pincode}` : ''}
+          </div>
+        </div>
+      )
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      render: (row) => getStatusBadge(row.status)
+    },
+    {
+      key: 'actions',
+      label: 'Action',
+      sortable: false,
+      align: 'center',
+      render: (row) => (
+        <div className="inline-block text-left" ref={activeDropdownId === row._id ? dropdownRef : null}>
+          <button
+            onClick={(e) => toggleDropdown(row._id, e)}
+            className="p-2 text-gray-600 hover:text-[#d4af37] hover:bg-gray-100 rounded-lg transition-colors border border-transparent hover:border-gray-200 cursor-pointer"
+            title="Actions"
+          >
+            <Settings size={20} />
+          </button>
+
+          {activeDropdownId === row._id && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1.5 z-30 animate-fadeIn">
+              <button
+                onClick={() => openViewModal(row)}
+                className="w-full text-left px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:text-blue-600 flex items-center gap-2 transition-colors cursor-pointer"
+              >
+                <Eye size={16} className="text-blue-500" /> View Details
+              </button>
+
+              <button
+                onClick={() => handleToggleEnable(row._id)}
+                className={`w-full text-left px-4 py-2 text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer ${
+                  row.status === 'APPROVED' ? 'text-purple-600 hover:bg-purple-50' : 'text-emerald-600 hover:bg-emerald-50'
+                }`}
+              >
+                {row.status === 'APPROVED' ? (
+                  <>
+                    <ToggleLeft size={16} className="text-purple-500" /> Disable Account
+                  </>
+                ) : (
+                  <>
+                    <ToggleRight size={16} className="text-emerald-500" /> Enable Account
+                  </>
+                )}
+              </button>
+
+              {row.status !== 'APPROVED' && (
+                <button
+                  onClick={() => handleApprove(row._id)}
+                  className="w-full text-left px-4 py-2 text-xs font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-600 flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <CheckCircle2 size={16} className="text-emerald-500" /> Approve Application
+                </button>
+              )}
+
+              {row.status !== 'REJECTED' && (
+                <button
+                  onClick={() => openRejectModal(row)}
+                  className="w-full text-left px-4 py-2 text-xs font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600 flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <XCircle size={16} className="text-orange-500" /> Reject Application
+                </button>
+              )}
+
+              <div className="my-1 border-t border-gray-100"></div>
+
+              <button
+                onClick={() => confirmDelete(row._id)}
+                className="w-full text-left px-4 py-2 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors cursor-pointer"
+              >
+                <Trash2 size={16} className="text-red-500" /> Delete Record
+              </button>
+            </div>
+          )}
+        </div>
+      )
+    }
+  ];
+
+  const filterConfig = [
+    {
+      key: 'restaurantType',
+      label: 'Restaurant Type',
+      type: 'select',
+      options: [
+        { label: 'All Types', value: '' },
+        { label: 'Cloud Kitchen', value: 'Cloud Kitchen' },
+        { label: 'Dine-In & Delivery', value: 'Dine-In & Delivery' },
+        { label: 'Takeaway Only', value: 'Takeaway Only' }
+      ]
+    }
+  ];
 
   return (
     <div className="space-y-6">
@@ -348,207 +537,88 @@ const Restaurants = () => {
         </div>
       )}
 
-      {/* Tabs & Stats */}
+      {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-gray-200 overflow-x-auto pb-1">
         <button
-          onClick={() => setActiveTab('ALL')}
+          onClick={() => handleTabChange('ALL')}
           className={`px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
             activeTab === 'ALL'
               ? 'border-[#d4af37] text-gray-900 font-bold'
               : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}
         >
-          All ({restaurants.length})
+          All ({statusCounts.ALL})
         </button>
         <button
-          onClick={() => setActiveTab('PENDING')}
+          onClick={() => handleTabChange('PENDING')}
           className={`px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
             activeTab === 'PENDING'
               ? 'border-orange-500 text-orange-600 font-bold'
               : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}
         >
-          Pending ({restaurants.filter(r => r.status === 'PENDING').length})
+          Pending ({statusCounts.PENDING})
         </button>
         <button
-          onClick={() => setActiveTab('APPROVED')}
+          onClick={() => handleTabChange('APPROVED')}
           className={`px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
             activeTab === 'APPROVED'
               ? 'border-emerald-500 text-emerald-600 font-bold'
               : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}
         >
-          Active / Approved ({restaurants.filter(r => r.status === 'APPROVED').length})
+          Active / Approved ({statusCounts.APPROVED})
         </button>
         <button
-          onClick={() => setActiveTab('SUSPENDED')}
+          onClick={() => handleTabChange('SUSPENDED')}
           className={`px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
             activeTab === 'SUSPENDED'
               ? 'border-purple-500 text-purple-600 font-bold'
               : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}
         >
-          Disabled / Suspended ({restaurants.filter(r => r.status === 'SUSPENDED').length})
+          Disabled / Suspended ({statusCounts.SUSPENDED})
         </button>
         <button
-          onClick={() => setActiveTab('REJECTED')}
+          onClick={() => handleTabChange('REJECTED')}
           className={`px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
             activeTab === 'REJECTED'
               ? 'border-red-500 text-red-600 font-bold'
               : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}
         >
-          Rejected ({restaurants.filter(r => r.status === 'REJECTED').length})
+          Rejected ({statusCounts.REJECTED})
         </button>
       </div>
 
-      {/* Table Container */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center p-12 text-gray-400">
-            <Loader2 className="animate-spin text-[#d4af37] mb-2" size={36} />
-            <p className="text-sm">Loading restaurant applications...</p>
-          </div>
-        ) : filteredRestaurants.length === 0 ? (
-          <div className="p-12 text-center text-gray-500">
-            <Store className="mx-auto text-gray-300 mb-3" size={48} />
-            <p className="font-semibold text-gray-700">No restaurants found</p>
-            <p className="text-sm text-gray-400 mt-1">There are no records matching the selected tab.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-gray-600">
-              <thead className="bg-gray-50 text-gray-700 font-semibold border-b border-gray-100">
-                <tr>
-                  <th className="px-6 py-4">Restaurant</th>
-                  <th className="px-6 py-4">Owner Details</th>
-                  <th className="px-6 py-4">City / Address</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filteredRestaurants.map(restaurant => (
-                  <tr key={restaurant._id} className="hover:bg-gray-50/80 transition-colors">
-                    {/* Restaurant Info */}
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-gray-900">{restaurant.restaurantName}</div>
-                      <div className="text-xs text-gray-500 mt-0.5">{restaurant.restaurantType} {restaurant.cuisine ? `• ${restaurant.cuisine}` : ''}</div>
-                    </td>
-
-                    {/* Owner Details */}
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-gray-800 flex items-center gap-1.5">
-                        {restaurant.ownerName}
-                        {restaurant.isPhoneVerified && <span title="Phone Verified" className="text-emerald-600 text-xs font-semibold">✓ Verified</span>}
-                      </div>
-                      <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                        <Phone size={12} className="text-gray-400" /> {restaurant.mobile}
-                      </div>
-                      {restaurant.email && (
-                        <div className="text-xs text-gray-400 flex items-center gap-1 mt-0.5 truncate max-w-[200px]">
-                          <Mail size={12} className="text-gray-400" /> {restaurant.email}
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Location */}
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-gray-800 flex items-center gap-1">
-                        <MapPin size={14} className="text-gray-400 shrink-0" /> {restaurant.city}
-                      </div>
-                      <div className="text-xs text-gray-400 truncate max-w-[220px] mt-0.5">
-                        {restaurant.fullAddress} {restaurant.pincode ? `- ${restaurant.pincode}` : ''}
-                      </div>
-                    </td>
-
-                    {/* Status */}
-                    <td className="px-6 py-4">
-                      {getStatusBadge(restaurant.status)}
-                    </td>
-
-                    {/* Action Dropdown Column with Gear Icon */}
-                    <td className="px-6 py-4 text-center relative">
-                      <div className="inline-block text-left" ref={activeDropdownId === restaurant._id ? dropdownRef : null}>
-                        <button
-                          onClick={(e) => toggleDropdown(restaurant._id, e)}
-                          className="p-2 text-gray-600 hover:text-[#d4af37] hover:bg-gray-100 rounded-lg transition-colors border border-transparent hover:border-gray-200 cursor-pointer"
-                          title="Actions"
-                        >
-                          <Settings size={20} />
-                        </button>
-
-                        {/* Dropdown Menu */}
-                        {activeDropdownId === restaurant._id && (
-                          <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1.5 z-30 animate-fadeIn">
-                            {/* View Option */}
-                            <button
-                              onClick={() => openViewModal(restaurant)}
-                              className="w-full text-left px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:text-blue-600 flex items-center gap-2 transition-colors cursor-pointer"
-                            >
-                              <Eye size={16} className="text-blue-500" /> View Details
-                            </button>
-
-                            {/* Enable / Disable Option */}
-                            <button
-                              onClick={() => handleToggleEnable(restaurant._id)}
-                              className={`w-full text-left px-4 py-2 text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer ${
-                                restaurant.status === 'APPROVED'
-                                  ? 'text-purple-600 hover:bg-purple-50'
-                                  : 'text-emerald-600 hover:bg-emerald-50'
-                              }`}
-                            >
-                              {restaurant.status === 'APPROVED' ? (
-                                <>
-                                  <ToggleLeft size={16} className="text-purple-500" /> Disable Account
-                                </>
-                              ) : (
-                                <>
-                                  <ToggleRight size={16} className="text-emerald-500" /> Enable Account
-                                </>
-                              )}
-                            </button>
-
-                            {/* Approve Option */}
-                            {restaurant.status !== 'APPROVED' && (
-                              <button
-                                onClick={() => handleApprove(restaurant._id)}
-                                className="w-full text-left px-4 py-2 text-xs font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-600 flex items-center gap-2 transition-colors cursor-pointer"
-                              >
-                                <CheckCircle2 size={16} className="text-emerald-500" /> Approve Application
-                              </button>
-                            )}
-
-                            {/* Reject Option */}
-                            {restaurant.status !== 'REJECTED' && (
-                              <button
-                                onClick={() => openRejectModal(restaurant)}
-                                className="w-full text-left px-4 py-2 text-xs font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600 flex items-center gap-2 transition-colors cursor-pointer"
-                              >
-                                <XCircle size={16} className="text-orange-500" /> Reject Application
-                              </button>
-                            )}
-
-                            <div className="my-1 border-t border-gray-100"></div>
-
-                            {/* Delete Option */}
-                            <button
-                              onClick={() => confirmDelete(restaurant._id)}
-                              className="w-full text-left px-4 py-2 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors cursor-pointer"
-                            >
-                              <Trash2 size={16} className="text-red-500" /> Delete Record
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {/* Reusable Server-Side DataTable */}
+      <DataTable
+        columns={columns}
+        data={restaurants}
+        loading={loading}
+        emptyMessage="No restaurants found matching your criteria."
+        pagination={{
+          page,
+          limit,
+          total: totalItems
+        }}
+        onPageChange={setPage}
+        onLimitChange={setLimit}
+        search={{
+          value: search,
+          placeholder: "Search restaurant name, owner, phone, city..."
+        }}
+        onSearchChange={setSearch}
+        filterConfig={filterConfig}
+        filters={filters}
+        onFilterChange={setFilters}
+        onClearFilters={handleClearFilters}
+        sorting={{
+          sortBy,
+          sortOrder
+        }}
+        onSortChange={setSort}
+      />
 
       {/* Modal (View or Reject) */}
       {isModalOpen && selectedRestaurant && (
@@ -617,7 +687,7 @@ const Restaurants = () => {
                     <p><span className="font-semibold">Status:</span> {selectedRestaurant.paymentData.status}</p>
                     <p><span className="font-semibold">Razorpay Order ID:</span> {selectedRestaurant.paymentData.razorpayOrderId}</p>
                     <p><span className="font-semibold">Razorpay Payment ID:</span> {selectedRestaurant.paymentData.razorpayPaymentId || 'N/A'}</p>
-                    <p><span className="font-semibold">Verified On:</span> {new Date(selectedRestaurant.paymentData.verifiedAt).toLocaleString()}</p>
+                    <p><span className="font-semibold">Verified On:</span> {new Date(selectedRestaurant.paymentData.verifiedAt || selectedRestaurant.paymentData.timestamp).toLocaleString()}</p>
                   </div>
                 </div>
               )}
@@ -760,6 +830,7 @@ const Restaurants = () => {
           </div>
         </div>
       )}
+
       {/* Fee Settings Modal */}
       {isFeeModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60">
@@ -799,19 +870,16 @@ const Restaurants = () => {
         </div>
       )}
 
-      {/* Confirm Delete Modal */}
+      {/* Delete Confirmation Modal */}
       <ConfirmModal
-        open={confirmModal.open}
-        title="Delete Restaurant"
-        message="Are you sure you want to delete this restaurant record? This action cannot be undone."
-        confirmText="Delete"
-        cancelText="Cancel"
-        variant="danger"
-        loading={actionLoading}
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, id: null })}
         onConfirm={handleDelete}
-        onCancel={() => setConfirmModal({ open: false, id: null })}
+        title="Delete Restaurant Account"
+        message="Are you sure you want to permanently delete this restaurant account and all associated data? This action cannot be undone."
+        confirmText={actionLoading ? 'Deleting...' : 'Delete Restaurant'}
+        confirmVariant="danger"
       />
-
     </div>
   );
 };
