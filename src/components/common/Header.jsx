@@ -13,6 +13,8 @@ const Header = ({ toggleSidebar, roleType = 'superadmin' }) => {
         superadmin: 'superadmin_user',
         admin: 'admin_user',
         customer: 'customer_user',
+        delivery: 'delivery_user',
+        restaurant: 'restaurant_user',
       };
       const userKey = keyMap[roleType] || 'restaurant_user';
       const userStr = localStorage.getItem(userKey);
@@ -35,6 +37,10 @@ const Header = ({ toggleSidebar, roleType = 'superadmin' }) => {
       localStorage.removeItem('customer_token');
       localStorage.removeItem('customer_user');
       navigate('/user/login');
+    } else if (roleType === 'delivery') {
+      localStorage.removeItem('delivery_token');
+      localStorage.removeItem('delivery_user');
+      navigate('/delivery/login');
     } else {
       localStorage.removeItem('restaurant_token');
       localStorage.removeItem('restaurant_user');
