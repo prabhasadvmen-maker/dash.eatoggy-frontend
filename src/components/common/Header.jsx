@@ -9,7 +9,12 @@ const Header = ({ toggleSidebar, roleType = 'superadmin' }) => {
 
   const userData = useMemo(() => {
     try {
-      const userKey = roleType === 'superadmin' ? 'superadmin_user' : roleType === 'admin' ? 'admin_user' : 'restaurant_user';
+      const keyMap = {
+        superadmin: 'superadmin_user',
+        admin: 'admin_user',
+        customer: 'customer_user',
+      };
+      const userKey = keyMap[roleType] || 'restaurant_user';
       const userStr = localStorage.getItem(userKey);
       return userStr ? JSON.parse(userStr) : { email: 'admin@eatoggy.com', role: 'Admin' };
     } catch {
@@ -26,6 +31,10 @@ const Header = ({ toggleSidebar, roleType = 'superadmin' }) => {
       localStorage.removeItem('admin_token');
       localStorage.removeItem('admin_user');
       navigate('/admin-login');
+    } else if (roleType === 'customer') {
+      localStorage.removeItem('customer_token');
+      localStorage.removeItem('customer_user');
+      navigate('/user/login');
     } else {
       localStorage.removeItem('restaurant_token');
       localStorage.removeItem('restaurant_user');

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMySubscriptionsAPI, pauseSubscriptionAPI, resumeSubscriptionAPI, cancelSubscriptionAPI } from '../../services/subscription/subscriptionService.js';
-import CustomerBottomNav from '../../components/customer/CustomerBottomNav.jsx';
+
 import {
   Calendar,
   ArrowLeft,
@@ -109,7 +109,7 @@ const CustomerSubscriptionsList = () => {
       case 'EXPIRED':
         return 'bg-red-500/10 text-red-400 border-red-500/30';
       default:
-        return 'bg-slate-800 text-slate-400 border-slate-700';
+        return 'bg-gray-50 text-gray-500 border-gray-200';
     }
   };
 
@@ -119,35 +119,34 @@ const CustomerSubscriptionsList = () => {
   });
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col pb-20" data-testid="customer-subscriptions-page">
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-slate-900 border-b border-slate-800 px-4 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/user/home')}
-            className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center hover:bg-slate-700 transition-colors cursor-pointer"
-            data-testid="subscriptions-back-btn"
-          >
-            <ArrowLeft size={18} className="text-white" />
-          </button>
-          <div>
-            <h1 className="text-lg font-black text-white">My Subscriptions</h1>
-            <p className="text-xs text-slate-400">Active & Past Tiffin Plans</p>
-          </div>
-        </div>
-
-        <button
-          onClick={() => navigate('/user/tiffin-plans')}
-          className="px-3 py-1.5 bg-[#d4af37] text-slate-950 font-bold rounded-full text-xs hover:brightness-110 transition-all cursor-pointer flex items-center gap-1"
-          data-testid="explore-plans-btn"
-        >
-          <Sparkles size={14} />
-          Explore Plans
-        </button>
-      </header>
-
+    <div className="space-y-6 max-w-7xl mx-auto pb-20">
       {/* Main Content */}
       <main className="flex-1 max-w-3xl mx-auto w-full p-4 space-y-4">
+        
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/user/home')}
+              className="w-10 h-10 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
+              data-testid="subscriptions-back-btn"
+            >
+              <ArrowLeft size={18} className="text-gray-900" />
+            </button>
+            <div>
+              <h1 className="text-lg font-black text-gray-900">My Subscriptions</h1>
+              <p className="text-xs text-gray-500">Active & Past Tiffin Plans</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => navigate('/user/tiffin-plans')}
+            className="px-3 py-1.5 bg-[#d4af37] text-slate-950 font-bold rounded-full text-xs hover:brightness-110 transition-all cursor-pointer flex items-center gap-1"
+            data-testid="explore-plans-btn"
+          >
+            <Sparkles size={14} />
+            Explore Plans
+          </button>
+        </div>
         {/* Status Filter Tabs */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           {['ALL', 'ACTIVE', 'PAUSED', 'COMPLETED', 'CANCELLED'].map(tab => (
@@ -157,7 +156,7 @@ const CustomerSubscriptionsList = () => {
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 activeTab === tab
                   ? 'bg-[#d4af37] text-slate-950 shadow-md shadow-[#d4af37]/10'
-                  : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
+                  : 'bg-white border border-gray-100 text-gray-500 hover:text-gray-900'
               }`}
               data-testid={`tab-${tab.toLowerCase()}`}
             >
@@ -179,11 +178,11 @@ const CustomerSubscriptionsList = () => {
             <p className="text-xs text-[#d4af37] font-bold">Loading your subscriptions...</p>
           </div>
         ) : filteredSubscriptions.length === 0 ? (
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center space-y-4 my-8 shadow-xl" data-testid="empty-subscriptions">
-            <UtensilsCrossed size={48} className="text-slate-600 mx-auto" />
+          <div className="bg-white border border-gray-100 rounded-3xl p-8 text-center space-y-4 my-8 shadow-xl" data-testid="empty-subscriptions">
+            <UtensilsCrossed size={48} className="text-gray-300 mx-auto" />
             <div className="space-y-1">
-              <h2 className="text-lg font-bold text-white">No Subscriptions Found</h2>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              <h2 className="text-lg font-bold text-gray-900">No Subscriptions Found</h2>
+              <p className="text-xs text-gray-500 max-w-sm mx-auto">
                 Subscribe to daily fresh home-cooked meal plans from top restaurants!
               </p>
             </div>
@@ -207,18 +206,18 @@ const CustomerSubscriptionsList = () => {
                 <div
                   key={sub._id}
                   onClick={() => navigate(`/user/subscriptions/${sub._id}`)}
-                  className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-3xl p-5 space-y-4 shadow-xl transition-all cursor-pointer group"
+                  className="bg-white border border-gray-100 hover:border-gray-200 rounded-3xl p-5 space-y-4 shadow-xl transition-all cursor-pointer group"
                   data-testid={`subscription-card-${sub._id}`}
                 >
-                  <div className="flex items-center justify-between border-b border-slate-800/60 pb-3">
+                  <div className="flex items-center justify-between border-b border-gray-100/60 pb-3">
                     <div>
                       <span className="text-[11px] font-mono text-[#d4af37]" data-testid="subscription-number">
                         {sub.subscriptionNumber}
                       </span>
-                      <h3 className="font-bold text-white text-base group-hover:text-[#d4af37] transition-colors" data-testid="subscription-plan-title">
+                      <h3 className="font-bold text-gray-900 text-base group-hover:text-[#d4af37] transition-colors" data-testid="subscription-plan-title">
                         {sub.planSnapshot?.planName || 'Tiffin Plan'}
                       </h3>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-gray-500">
                         {sub.restaurantId?.restaurantName || 'Restaurant'}
                       </p>
                     </div>
@@ -228,21 +227,21 @@ const CustomerSubscriptionsList = () => {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-300 bg-slate-950/60 p-3 rounded-2xl border border-slate-800/80">
+                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 bg-transparent/60 p-3 rounded-2xl border border-gray-100/80">
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold">Meal Type</p>
-                      <p className="font-semibold text-white">{sub.planSnapshot?.mealType || 'LUNCH'}</p>
+                      <p className="text-[10px] text-gray-500 uppercase font-bold">Meal Type</p>
+                      <p className="font-semibold text-gray-900">{sub.planSnapshot?.mealType || 'LUNCH'}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold">Duration</p>
-                      <p className="font-semibold text-white">{sub.durationDays || 30} Days</p>
+                      <p className="text-[10px] text-gray-500 uppercase font-bold">Duration</p>
+                      <p className="font-semibold text-gray-900">{sub.durationDays || 30} Days</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold">Start Date</p>
-                      <p className="font-semibold text-white">{formattedStartDate}</p>
+                      <p className="text-[10px] text-gray-500 uppercase font-bold">Start Date</p>
+                      <p className="font-semibold text-gray-900">{formattedStartDate}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold">Total Paid</p>
+                      <p className="text-[10px] text-gray-500 uppercase font-bold">Total Paid</p>
                       <p className="font-bold text-[#d4af37]">₹{sub.pricingSnapshot?.grandTotal || 0}</p>
                     </div>
                   </div>
@@ -296,7 +295,7 @@ const CustomerSubscriptionsList = () => {
         )}
       </main>
 
-      <CustomerBottomNav />
+      
     </div>
   );
 };

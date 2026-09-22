@@ -15,7 +15,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import API_BASE_URL from '../../services/apiService';
-import CustomerBottomNav from '../../components/customer/CustomerBottomNav';
+
 
 const CustomerSupport = () => {
   const navigate = useNavigate();
@@ -168,33 +168,32 @@ const CustomerSupport = () => {
   });
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-4 flex items-center justify-between max-w-5xl mx-auto">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/user/dashboard')}
-            className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition-colors"
-          >
-            <ArrowLeft size={18} />
-          </button>
-          <div>
-            <h1 className="text-lg font-bold text-white flex items-center gap-2">
-              <HelpCircle className="text-[#d4af37]" size={20} /> Customer Help & Support
-            </h1>
-            <p className="text-xs text-slate-400">Get assistance with orders, payments, subscriptions & accounts</p>
-          </div>
-        </div>
-
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="px-3.5 py-2 bg-[#d4af37] text-slate-950 hover:bg-[#c5a028] font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-lg shadow-[#d4af37]/10 transition-colors"
-        >
-          <Plus size={16} /> New Support Ticket
-        </button>
-      </header>
-
+    <div className="space-y-6 max-w-7xl mx-auto pb-20">
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+        
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/user/dashboard')}
+              className="p-2 rounded-xl bg-gray-50 border border-gray-200 text-gray-500 hover:text-gray-900 transition-colors"
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <div>
+              <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <HelpCircle className="text-[#d4af37]" size={20} /> Customer Help & Support
+              </h1>
+              <p className="text-xs text-gray-500">Get assistance with orders, payments, subscriptions & accounts</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-3.5 py-2 bg-[#d4af37] text-slate-950 hover:bg-[#c5a028] font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-lg shadow-[#d4af37]/10 transition-colors"
+          >
+            <Plus size={16} /> New Support Ticket
+          </button>
+        </div>
         {/* Status Filter Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
           {['ALL', 'OPEN', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED', 'CLOSED'].map((st) => (
@@ -204,7 +203,7 @@ const CustomerSupport = () => {
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-colors ${
                 statusFilter === st
                   ? 'bg-[#d4af37] text-slate-950 shadow'
-                  : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
+                  : 'bg-white text-gray-500 border border-gray-100 hover:text-slate-200'
               }`}
             >
               {st.replace(/_/g, ' ')}
@@ -216,13 +215,13 @@ const CustomerSupport = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-3">
             {loading ? (
-              <div className="p-8 text-center text-slate-500 bg-slate-900/60 rounded-2xl border border-slate-800">
+              <div className="p-8 text-center text-gray-400 bg-white/60 rounded-2xl border border-gray-100">
                 Loading support tickets...
               </div>
             ) : filteredTickets.length === 0 ? (
-              <div className="p-12 text-center bg-slate-900/60 rounded-2xl border border-slate-800 space-y-3">
-                <HelpCircle size={40} className="mx-auto text-slate-600" />
-                <p className="text-sm font-semibold text-slate-400">No support tickets found</p>
+              <div className="p-12 text-center bg-white/60 rounded-2xl border border-gray-100 space-y-3">
+                <HelpCircle size={40} className="mx-auto text-gray-300" />
+                <p className="text-sm font-semibold text-gray-500">No support tickets found</p>
                 <button
                   onClick={() => setShowCreateModal(true)}
                   className="px-4 py-2 bg-[#d4af37]/10 text-[#d4af37] border border-[#d4af37]/30 rounded-xl text-xs font-bold hover:bg-[#d4af37]/20"
@@ -237,8 +236,8 @@ const CustomerSupport = () => {
                   onClick={() => setActiveTicket(t)}
                   className={`p-4 rounded-2xl border transition-all cursor-pointer space-y-2 ${
                     activeTicket?._id === t._id
-                      ? 'bg-slate-900 border-[#d4af37] shadow-lg shadow-[#d4af37]/5'
-                      : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
+                      ? 'bg-white border-[#d4af37] shadow-lg shadow-[#d4af37]/5'
+                      : 'bg-white/60 border-gray-100 hover:border-gray-200'
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -249,17 +248,17 @@ const CustomerSupport = () => {
                           ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                           : t.status === 'RESOLVED'
                           ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-slate-800 text-slate-300 border border-slate-700'
+                          : 'bg-gray-50 text-gray-700 border border-gray-200'
                       }`}
                     >
                       {t.status.replace(/_/g, ' ')}
                     </span>
                   </div>
 
-                  <h3 className="font-bold text-sm text-slate-100 line-clamp-1">{t.subject}</h3>
-                  <p className="text-xs text-slate-400 line-clamp-2">{t.description}</p>
+                  <h3 className="font-bold text-sm text-gray-900 line-clamp-1">{t.subject}</h3>
+                  <p className="text-xs text-gray-500 line-clamp-2">{t.description}</p>
 
-                  <div className="flex items-center justify-between text-[10px] text-slate-500 pt-2 border-t border-slate-800/80">
+                  <div className="flex items-center justify-between text-[10px] text-gray-400 pt-2 border-t border-gray-100/80">
                     <span>Category: {t.category.replace(/_/g, ' ')}</span>
                     <span>{formatDate(t.createdAt)}</span>
                   </div>
@@ -269,15 +268,15 @@ const CustomerSupport = () => {
           </div>
 
           {/* Ticket Details & Chat Panel */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 flex flex-col justify-between h-[520px]">
+          <div className="bg-white border border-gray-100 rounded-2xl p-5 space-y-4 flex flex-col justify-between h-[520px]">
             {activeTicket ? (
               <>
                 <div className="space-y-3">
-                  <div className="border-b border-slate-800 pb-3 flex justify-between items-start">
+                  <div className="border-b border-gray-100 pb-3 flex justify-between items-start">
                     <div>
                       <span className="font-mono text-xs font-bold text-[#d4af37]">{activeTicket.ticketNumber}</span>
-                      <h2 className="font-bold text-base text-slate-100 mt-0.5">{activeTicket.subject}</h2>
-                      <p className="text-xs text-slate-400">
+                      <h2 className="font-bold text-base text-gray-900 mt-0.5">{activeTicket.subject}</h2>
+                      <p className="text-xs text-gray-500">
                         Category: {activeTicket.category.replace(/_/g, ' ')} | Priority: {activeTicket.priority}
                       </p>
                     </div>
@@ -287,7 +286,7 @@ const CustomerSupport = () => {
                           ? 'bg-amber-500/20 text-amber-400'
                           : activeTicket.status === 'RESOLVED'
                           ? 'bg-emerald-500/20 text-emerald-400'
-                          : 'bg-slate-800 text-slate-300'
+                          : 'bg-gray-50 text-gray-700'
                       }`}
                     >
                       {activeTicket.status}
@@ -295,11 +294,11 @@ const CustomerSupport = () => {
                   </div>
 
                   {activeTicket.orderId && (
-                    <div className="p-2.5 bg-slate-950 rounded-xl border border-slate-800 text-xs flex items-center justify-between text-slate-300">
+                    <div className="p-2.5 bg-transparent rounded-xl border border-gray-100 text-xs flex items-center justify-between text-gray-700">
                       <span className="flex items-center gap-1.5">
                         <ShoppingBag size={14} className="text-[#d4af37]" /> Linked Order ID:
                       </span>
-                      <span className="font-mono font-bold text-slate-100">
+                      <span className="font-mono font-bold text-gray-900">
                         {activeTicket.orderId.orderId || activeTicket.orderId}
                       </span>
                     </div>
@@ -312,11 +311,11 @@ const CustomerSupport = () => {
                         key={idx}
                         className={`p-3 rounded-xl text-xs space-y-1 ${
                           msg.senderType === 'SUPER_ADMIN' || msg.senderType === 'SUPPORT_AGENT'
-                            ? 'bg-[#d4af37]/10 border border-[#d4af37]/30 text-slate-100 ml-3'
-                            : 'bg-slate-800/80 border border-slate-700 text-slate-200 mr-3'
+                            ? 'bg-[#d4af37]/10 border border-[#d4af37]/30 text-gray-900 ml-3'
+                            : 'bg-gray-50/80 border border-gray-200 text-slate-200 mr-3'
                         }`}
                       >
-                        <div className="flex justify-between font-bold text-[10px] text-slate-400">
+                        <div className="flex justify-between font-bold text-[10px] text-gray-500">
                           <span>{msg.senderName} ({msg.senderType})</span>
                           <span>{formatDate(msg.createdAt)}</span>
                         </div>
@@ -327,14 +326,14 @@ const CustomerSupport = () => {
                 </div>
 
                 {/* Reply Form */}
-                <form onSubmit={handleSendReply} className="pt-3 border-t border-slate-800 space-y-2">
+                <form onSubmit={handleSendReply} className="pt-3 border-t border-gray-100 space-y-2">
                   <textarea
                     value={replyMessage}
                     onChange={(e) => setReplyMessage(e.target.value)}
                     placeholder="Type your message or reply..."
                     rows="2"
                     required
-                    className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 focus:border-[#d4af37] outline-none resize-none"
+                    className="w-full p-3 bg-transparent border border-gray-100 rounded-xl text-xs text-gray-900 focus:border-[#d4af37] outline-none resize-none"
                   />
                   <button
                     type="submit"
@@ -346,9 +345,9 @@ const CustomerSupport = () => {
                 </form>
               </>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500 space-y-2">
-                <MessageSquare size={36} className="text-slate-600" />
-                <p className="text-xs font-semibold text-slate-400">Select a ticket from the left panel to view thread & reply</p>
+              <div className="h-full flex flex-col items-center justify-center text-center p-6 text-gray-400 space-y-2">
+                <MessageSquare size={36} className="text-gray-300" />
+                <p className="text-xs font-semibold text-gray-500">Select a ticket from the left panel to view thread & reply</p>
               </div>
             )}
           </div>
@@ -357,26 +356,26 @@ const CustomerSupport = () => {
 
       {/* Create Ticket Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 space-y-4 relative shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-transparent/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-gray-100 rounded-2xl w-full max-w-lg p-6 space-y-4 relative shadow-2xl">
             <button
               onClick={() => setShowCreateModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1"
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-900 p-1"
             >
               <X size={20} />
             </button>
 
-            <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
               <HelpCircle className="text-[#d4af37]" size={20} /> Submit Support Ticket
             </h2>
 
             <form onSubmit={handleCreateTicket} className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-400 font-semibold mb-1">Category</label>
+                <label className="block text-gray-500 font-semibold mb-1">Category</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 focus:border-[#d4af37] outline-none"
+                  className="w-full p-2.5 bg-transparent border border-gray-100 rounded-xl text-gray-900 focus:border-[#d4af37] outline-none"
                 >
                   <option value="ORDER_ISSUE">Order Issue</option>
                   <option value="PAYMENT">Payment Issue</option>
@@ -391,11 +390,11 @@ const CustomerSupport = () => {
               </div>
 
               <div>
-                <label className="block text-slate-400 font-semibold mb-1">Priority</label>
+                <label className="block text-gray-500 font-semibold mb-1">Priority</label>
                 <select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
-                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 focus:border-[#d4af37] outline-none"
+                  className="w-full p-2.5 bg-transparent border border-gray-100 rounded-xl text-gray-900 focus:border-[#d4af37] outline-none"
                 >
                   <option value="LOW">Low</option>
                   <option value="MEDIUM">Medium</option>
@@ -406,11 +405,11 @@ const CustomerSupport = () => {
 
               {orders.length > 0 && (
                 <div>
-                  <label className="block text-slate-400 font-semibold mb-1">Linked Order (Optional)</label>
+                  <label className="block text-gray-500 font-semibold mb-1">Linked Order (Optional)</label>
                   <select
                     value={orderId}
                     onChange={(e) => setOrderId(e.target.value)}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 focus:border-[#d4af37] outline-none"
+                    className="w-full p-2.5 bg-transparent border border-gray-100 rounded-xl text-gray-900 focus:border-[#d4af37] outline-none"
                   >
                     <option value="">None / Not Order Specific</option>
                     {orders.map((o) => (
@@ -423,26 +422,26 @@ const CustomerSupport = () => {
               )}
 
               <div>
-                <label className="block text-slate-400 font-semibold mb-1">Subject</label>
+                <label className="block text-gray-500 font-semibold mb-1">Subject</label>
                 <input
                   type="text"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="Summary of issue..."
                   required
-                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 focus:border-[#d4af37] outline-none"
+                  className="w-full p-2.5 bg-transparent border border-gray-100 rounded-xl text-gray-900 focus:border-[#d4af37] outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 font-semibold mb-1">Description</label>
+                <label className="block text-gray-500 font-semibold mb-1">Description</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Detailed description of problem..."
                   rows="3"
                   required
-                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 focus:border-[#d4af37] outline-none resize-none"
+                  className="w-full p-2.5 bg-transparent border border-gray-100 rounded-xl text-gray-900 focus:border-[#d4af37] outline-none resize-none"
                 />
               </div>
 
@@ -458,7 +457,7 @@ const CustomerSupport = () => {
         </div>
       )}
 
-      <CustomerBottomNav />
+      
     </div>
   );
 };
