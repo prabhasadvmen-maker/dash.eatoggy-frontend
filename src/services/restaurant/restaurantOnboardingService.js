@@ -27,6 +27,20 @@ export const updateBusinessDetails = async (data) => {
   }
 };
 
+export const uploadKitchenHygiene = async (formData) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/restaurant-onboarding/kitchen-hygiene`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: formData
+    });
+    const resData = await response.json();
+    return { ok: response.ok, data: resData };
+  } catch (error) {
+    return { ok: false, data: { message: 'Network error.' } };
+  }
+};
+
 export const uploadBusinessDocs = async (formData) => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/restaurant-onboarding/business-docs`, {
