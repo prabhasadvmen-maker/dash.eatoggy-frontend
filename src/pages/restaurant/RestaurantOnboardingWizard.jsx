@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getMe } from '../../services/restaurant/restaurantAuthService';
 import {
   updateBusinessDetails,
+  uploadKitchenHygiene,
   uploadBusinessDocs,
   updateIdentityBank,
   getRegistrationFee,
@@ -12,7 +13,7 @@ import {
   getRazorpayKey
 } from '../../services/restaurant/restaurantOnboardingService';
 import {
-  Store, FileText, CreditCard, ShieldCheck, CheckCircle2,
+  Store, Camera, FileText, CreditCard, ShieldCheck, CheckCircle2,
   Check, Upload, ArrowRight, LogOut, Phone
 } from 'lucide-react';
 import { Button, Input, Card, PageHeader, PageLoader, Alert } from '../../components/common';
@@ -27,10 +28,11 @@ const RestaurantOnboardingWizard = () => {
 
   // Active step index: 
   // 0: Business Details
-  // 1: Business Docs (GST, FSSAI)
-  // 2: Identity & Bank
-  // 3: Review & Payment
-  // 4: Status (Pending Review)
+  // 1: Kitchen Hygiene Proof
+  // 2: Business Docs (GST, FSSAI)
+  // 3: Identity & Bank
+  // 4: Review & Payment
+  // 5: Status (Pending Review)
   const [activeStep, setActiveStep] = useState(0);
 
   // Fee state
@@ -54,6 +56,12 @@ const RestaurantOnboardingWizard = () => {
   const [docFiles, setDocFiles] = useState({
     gstCertificate: null,
     foodLicense: null
+  });
+
+  const [hygieneFiles, setHygieneFiles] = useState({
+    mainPrepStation: null,
+    storageAndFridge: null,
+    dishwashingArea: null
   });
 
   const [idBankData, setIdBankData] = useState({
@@ -130,13 +138,16 @@ const RestaurantOnboardingWizard = () => {
           'DRAFT': 0,
           'ONBOARDING_IN_PROGRESS': 0,
           'BUSINESS_DETAILS': 0,
-          'BUSINESS_DOCS': 1,
-          'IDENTITY_BANK': 2,
-          'REVIEW_PAYMENT': 3,
-          'PENDING_REVIEW': 4
+          'KITCHEN_HYGIENE': 1,
+          'BUSINESS_DOCS': 2,
+          'IDENTITY_BANK': 3,
+          'REVIEW_PAYMENT': 4,
+          'PENDING_REVIEW': 5
         };
         if (stepMap[p.currentStep] !== undefined) {
           setActiveStep(stepMap[p.currentStep]);
+        } else if (['PENDING_REVIEW', 'APPROVED', 'REJECTED'].includes(p.onboardingStatus)) {
+          setActiveStep(5);
         }
       }
     } catch (err) {
@@ -169,7 +180,41 @@ const RestaurantOnboardingWizard = () => {
     }
   };
 
-  // --- Step 1: Business Docs ---
+  // --- Step 1: Kitchen Hygiene Proof ---
+  const handleUploadKitchenHygiene = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!hygieneFiles.mainPrepStation && !partner?.kitchenHygieneProof?.mainPrepStation?.url) {
+      setError('Please upload Main Prep Station media');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const formData = new FormData();
+      if (hygieneFiles.mainPrepStation) formData.append('mainPrepStation', hygieneFiles.mainPrepStation);
+      if (hygieneFiles.storageAndFridge) formData.append('storageAndFridge', hygieneFiles.storageAndFridge);
+      if (hygieneFiles.dishwashingArea) formData.append('dishwashingArea', hygieneFiles.dishwashingArea);
+
+      const res = await uploadKitchenHygiene(formData);
+      if (!res.ok) {
+        setError(res.data.message || 'Failed to upload hygiene proof');
+        setActionLoading(false);
+        return;
+      }
+
+      setSuccess('Kitchen hygiene proof uploaded successfully!');
+      setActiveStep(2);
+    } catch (err) {
+      setError(err.message || 'Error uploading hygiene proof');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // --- Step 2: Business Docs ---
   const handleUploadBusinessDocs = async (e) => {
     e.preventDefault();
     setError('');
@@ -197,7 +242,7 @@ const RestaurantOnboardingWizard = () => {
       }
 
       setSuccess('Business documents uploaded successfully!');
-      setActiveStep(2);
+      setActiveStep(3);
     } catch (err) {
       setError(err.message || 'Error uploading business docs');
     } finally {
@@ -242,7 +287,7 @@ const RestaurantOnboardingWizard = () => {
       }
 
       setSuccess('Identity & Bank details saved successfully!');
-      setActiveStep(3);
+      setActiveStep(4);
     } catch (err) {
       setError(err.message || 'Error saving identity & bank details');
     } finally {
@@ -338,7 +383,7 @@ const RestaurantOnboardingWizard = () => {
       // Automatically Submit Application
       const submitRes = await submitApplication();
       if (submitRes.ok) {
-        setActiveStep(4);
+        setActiveStep(5);
       } else {
         setError(submitRes.data.message || 'Failed to submit onboarding');
       }
@@ -355,6 +400,7 @@ const RestaurantOnboardingWizard = () => {
 
   const steps = [
     { title: 'Business', icon: Store },
+    { title: 'Hygiene', icon: Camera },
     { title: 'Documents', icon: FileText },
     { title: 'Identity & Bank', icon: CreditCard },
     { title: 'Review & Pay', icon: ShieldCheck },
@@ -465,8 +511,78 @@ const RestaurantOnboardingWizard = () => {
           </form>
         )}
 
-        {/* STEP 1: BUSINESS DOCS */}
+        {/* STEP 1: KITCHEN HYGIENE PROOF */}
         {activeStep === 1 && (
+          <form onSubmit={handleUploadKitchenHygiene}>
+            <Card
+              header={
+                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-[#d4af37]" /> Kitchen Hygiene Proof
+                </h2>
+              }
+              footer={
+                <div className="flex justify-between w-full">
+                  <Button variant="secondary" onClick={() => setActiveStep(0)}>Back</Button>
+                  <Button type="submit" id="onboard-hygiene-next-btn" loading={actionLoading} icon={ArrowRight} iconPosition="right">
+                    Upload & Next
+                  </Button>
+                </div>
+              }
+            >
+              <div className="space-y-6">
+                <p className="text-sm text-slate-600">Upload real-time media of your workspace to verify hygiene standards and get the "Verified Clean" badge.</p>
+                <div className="text-xs bg-amber-50 p-3 rounded-lg border border-amber-200 text-amber-800">
+                  Max file size: 25MB. Accepted formats: JPG, PNG, MP4...
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">Main Prep Station (Photo or Video) *</label>
+                  <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 hover:border-[#d4af37] rounded-xl cursor-pointer bg-slate-50 transition-all">
+                    <Upload className="w-8 h-8 text-slate-400 mb-2" />
+                    <span className="text-sm font-medium text-slate-700">Upload Prep Area View</span>
+                    <span className="text-xs text-slate-500 mt-1 truncate max-w-full">
+                      {hygieneFiles.mainPrepStation ? hygieneFiles.mainPrepStation.name : partner?.kitchenHygieneProof?.mainPrepStation?.url ? 'Already uploaded (click to replace)' : 'Choose File'}
+                    </span>
+                    <input type="file" accept="image/*,video/mp4" onChange={(e) => setHygieneFiles({ ...hygieneFiles, mainPrepStation: e.target.files[0] })} className="hidden" />
+                  </label>
+                </div>
+
+                <div className="border-t border-slate-200 pt-6">
+                  <h3 className="font-bold text-slate-800 mb-4">Additional Areas</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">Storage & Fridge</label>
+                      <p className="text-xs text-slate-500 mb-2">Proper shelf order & packaging</p>
+                      <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300 hover:border-[#d4af37] rounded-xl cursor-pointer bg-slate-50 transition-all">
+                        <Upload className="w-5 h-5 text-slate-400 mb-1" />
+                        <span className="text-xs font-medium text-slate-700">Upload</span>
+                        <span className="text-[10px] text-slate-500 mt-1 truncate max-w-full">
+                          {hygieneFiles.storageAndFridge ? hygieneFiles.storageAndFridge.name : partner?.kitchenHygieneProof?.additionalAreas?.storageAndFridge?.url ? 'Already uploaded' : 'Optional'}
+                        </span>
+                        <input type="file" accept="image/*,video/mp4" onChange={(e) => setHygieneFiles({ ...hygieneFiles, storageAndFridge: e.target.files[0] })} className="hidden" />
+                      </label>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">Dishwashing Area</label>
+                      <p className="text-xs text-slate-500 mb-2">Clean sinks & sanitizers</p>
+                      <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300 hover:border-[#d4af37] rounded-xl cursor-pointer bg-slate-50 transition-all">
+                        <Upload className="w-5 h-5 text-slate-400 mb-1" />
+                        <span className="text-xs font-medium text-slate-700">Upload</span>
+                        <span className="text-[10px] text-slate-500 mt-1 truncate max-w-full">
+                          {hygieneFiles.dishwashingArea ? hygieneFiles.dishwashingArea.name : partner?.kitchenHygieneProof?.additionalAreas?.dishwashingArea?.url ? 'Already uploaded' : 'Optional'}
+                        </span>
+                        <input type="file" accept="image/*,video/mp4" onChange={(e) => setHygieneFiles({ ...hygieneFiles, dishwashingArea: e.target.files[0] })} className="hidden" />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </form>
+        )}
+
+        {/* STEP 2: BUSINESS DOCS */}
+        {activeStep === 2 && (
           <form onSubmit={handleUploadBusinessDocs}>
             <Card
               header={
@@ -476,7 +592,7 @@ const RestaurantOnboardingWizard = () => {
               }
               footer={
                 <div className="flex justify-between w-full">
-                  <Button variant="secondary" onClick={() => setActiveStep(0)}>Back</Button>
+                  <Button variant="secondary" onClick={() => setActiveStep(1)}>Back</Button>
                   <Button type="submit" id="onboard-docs-next-btn" loading={actionLoading} icon={ArrowRight} iconPosition="right">
                     Upload & Next
                   </Button>
@@ -509,8 +625,8 @@ const RestaurantOnboardingWizard = () => {
           </form>
         )}
 
-        {/* STEP 2: IDENTITY & BANK */}
-        {activeStep === 2 && (
+        {/* STEP 3: IDENTITY & BANK */}
+        {activeStep === 3 && (
           <form onSubmit={handleSaveIdentityBank}>
             <Card
               header={
@@ -520,7 +636,7 @@ const RestaurantOnboardingWizard = () => {
               }
               footer={
                 <div className="flex justify-between w-full">
-                  <Button variant="secondary" onClick={() => setActiveStep(1)}>Back</Button>
+                  <Button variant="secondary" onClick={() => setActiveStep(2)}>Back</Button>
                   <Button type="submit" id="onboard-idbank-next-btn" loading={actionLoading} icon={ArrowRight} iconPosition="right">
                     Save & Next
                   </Button>
@@ -565,8 +681,8 @@ const RestaurantOnboardingWizard = () => {
           </form>
         )}
 
-        {/* STEP 3: REVIEW & PAYMENT */}
-        {activeStep === 3 && (
+        {/* STEP 4: REVIEW & PAYMENT */}
+        {activeStep === 4 && (
           <Card
             header={
               <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -575,7 +691,7 @@ const RestaurantOnboardingWizard = () => {
             }
             footer={
               <div className="flex justify-between w-full">
-                <Button variant="secondary" onClick={() => setActiveStep(2)}>Back</Button>
+                <Button variant="secondary" onClick={() => setActiveStep(3)}>Back</Button>
                 <Button onClick={handleStartPayment} id="onboard-pay-btn" loading={actionLoading} icon={ShieldCheck}>
                   Pay ₹{feeInfo.fee} & Submit
                 </Button>
@@ -591,18 +707,26 @@ const RestaurantOnboardingWizard = () => {
                 <p className="text-xs text-slate-500 mt-2">One-time fee to set up your restaurant on Eatoggy.</p>
               </div>
               
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-sm text-slate-700">
-                <h3 className="font-bold border-b pb-2 mb-2">Summary</h3>
-                <p><strong>Name:</strong> {businessData.restaurantName}</p>
-                <p><strong>Owner:</strong> {businessData.ownerName}</p>
-                <p><strong>Address:</strong> {businessData.fullAddress}, {businessData.city}</p>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4 text-sm text-slate-700">
+                <div>
+                  <h3 className="font-bold border-b pb-2 mb-2">Summary</h3>
+                  <p><strong>Name:</strong> {businessData.restaurantName}</p>
+                  <p><strong>Owner:</strong> {businessData.ownerName}</p>
+                  <p><strong>Address:</strong> {businessData.fullAddress}, {businessData.city}</p>
+                </div>
+                <div>
+                  <h3 className="font-bold border-b pb-2 mb-2">Kitchen Hygiene Proof</h3>
+                  <p><strong>Main Prep Station:</strong> {partner?.kitchenHygieneProof?.mainPrepStation?.url ? '✓ Uploaded' : '✗ Missing'}</p>
+                  <p><strong>Storage & Fridge:</strong> {partner?.kitchenHygieneProof?.additionalAreas?.storageAndFridge?.url ? '✓ Uploaded' : 'Optional / Not provided'}</p>
+                  <p><strong>Dishwashing Area:</strong> {partner?.kitchenHygieneProof?.additionalAreas?.dishwashingArea?.url ? '✓ Uploaded' : 'Optional / Not provided'}</p>
+                </div>
               </div>
             </div>
           </Card>
         )}
 
-        {/* STEP 4: STATUS */}
-        {activeStep === 4 && (
+        {/* STEP 5: STATUS */}
+        {activeStep === 5 && (
           <Card>
             <div className="p-8 text-center space-y-4">
               <div className="w-20 h-20 bg-green-50 border-2 border-green-200 text-green-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
