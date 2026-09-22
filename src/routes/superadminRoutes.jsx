@@ -48,6 +48,7 @@ export const renderSuperAdminRoutes = () => (
       <Route path="orders" element={<SuperAdminOrders />} />
       <Route path="subscriptions" element={<SuperAdminSubscriptions />} />
       <Route path="menu-management">
+        <Route index element={<Navigate to="categories" replace />} />
         <Route path="categories" element={<Categories />} />
         <Route path="subcategories" element={<Subcategories />} />
         <Route path="verification" element={<MenuVerification />} />
