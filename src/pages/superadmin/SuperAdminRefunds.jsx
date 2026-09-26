@@ -67,38 +67,65 @@ const SuperAdminRefunds = () => {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return new Date(dateString).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' });
   };
 
   const columns = [
     {
+      key: 'srNo',
+      label: 'Sr. No.',
+      align: 'center',
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
+      render: (_, rowIndex) => (
+        <span className="text-gray-500 font-medium text-sm">
+          {((page - 1) * limit) + rowIndex + 1}
+        </span>
+      )
+    },
+    {
       key: 'razorpayOrderId',
       label: 'Transaction / Order',
       sortable: false,
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
       render: (row) => (
-        <div>
-          <div>Order ID: <span className="font-mono text-xs text-gray-600">{row.razorpayOrderId}</span></div>
-          {row.refundDetails?.refundId && <div className="text-xs text-purple-600 font-mono">Refund ID: {row.refundDetails?.refundId}</div>}
+        <div className="whitespace-nowrap">
+          <div className="truncate max-w-[200px]" title={row.razorpayOrderId}>Order ID: <span className="font-mono text-xs text-gray-600">{row.razorpayOrderId}</span></div>
+          {row.refundDetails?.refundId && <div className="text-[10px] text-purple-600 font-mono truncate max-w-[200px]" title={row.refundDetails?.refundId}>Refund ID: {row.refundDetails?.refundId}</div>}
         </div>
       )
     },
     {
       key: 'customer',
-      label: 'Customer',
+      label: 'Paid By',
       sortable: false,
-      render: (row) => (
-        <div>
-          <div className="font-medium text-slate-700">{row.customer?.name || 'Customer'}</div>
-          <div className="text-xs text-gray-400">{row.customer?.mobile}</div>
-        </div>
-      )
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
+      render: (row) => {
+        let name = 'Unknown';
+        let mobile = '';
+        
+        if (row.customer) { name = row.customer.name; mobile = row.customer.mobile; }
+        else if (row.restaurant) { name = row.restaurant.name || row.restaurant.restaurantName; mobile = row.restaurant.mobile; }
+        else if (row.deliveryPartner) { name = row.deliveryPartner.fullName; mobile = row.deliveryPartner.mobile; }
+
+        return (
+          <div className="whitespace-nowrap">
+            <div className="font-medium text-slate-700 truncate max-w-[120px]" title={name}>{name || 'Unknown'}</div>
+            <div className="text-[10px] text-gray-400 font-mono mt-0.5">{mobile}</div>
+          </div>
+        );
+      }
     },
     {
       key: 'refundDetails.reason',
       label: 'Refund Reason',
       sortable: false,
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
       render: (row) => (
-        <span className="text-slate-600 font-medium">
+        <span className="text-slate-600 font-medium text-[11px] truncate max-w-[200px] inline-block whitespace-nowrap" title={row.refundDetails?.reason || 'Admin initiated refund'}>
           {row.refundDetails?.reason || 'Admin initiated refund'}
         </span>
       )
@@ -108,8 +135,10 @@ const SuperAdminRefunds = () => {
       label: 'Amount',
       sortable: false,
       align: 'center',
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
       render: (row) => (
-        <span className="font-bold text-purple-700">
+        <span className="font-bold text-purple-700 whitespace-nowrap text-xs">
           ₹{row.refundDetails?.refundAmount || row.amount}
         </span>
       )
@@ -117,9 +146,11 @@ const SuperAdminRefunds = () => {
     {
       key: 'refundDetails.refundedAt',
       label: 'Refunded Date',
-      sortable: true, // Note: sort by refundedAt or updatedAt might need proper backend mapping if nested sort is used. Since we just pass sortBy to query builder, if it allows it it will sort, if not default to allowed fields
+      sortable: true,
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
       render: (row) => (
-        <span className="text-slate-400 font-medium whitespace-nowrap">
+        <span className="text-slate-500 font-medium whitespace-nowrap text-[11px]">
           {formatDate(row.refundDetails?.refundedAt || row.updatedAt)}
         </span>
       )

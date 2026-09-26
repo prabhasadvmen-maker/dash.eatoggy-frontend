@@ -4,6 +4,15 @@ import ProtectedRoute from '../components/common/ProtectedRoute';
 import AdminDashboardLayout from '../layouts/admin/AdminDashboardLayout';
 import AdminLogin from '../pages/auth/AdminLogin';
 import AdminOverview from '../pages/admin/AdminOverview';
+import AdminUsers from '../pages/admin/AdminUsers';
+import AdminPartners from '../pages/admin/AdminPartners';
+import AdminServices from '../pages/admin/AdminServices';
+import AdminBookings from '../pages/admin/AdminBookings';
+import AdminLiveTracking from '../pages/admin/AdminLiveTracking';
+import AdminFinance from '../pages/admin/AdminFinance';
+import AdminMarketing from '../pages/admin/AdminMarketing';
+import AdminSupport from '../pages/admin/AdminSupport';
+import AdminAnalytics from '../pages/admin/AdminAnalytics';
 import ComingSoon from '../pages/website/ComingSoon';
 import {
   Users, Wrench, Briefcase, Calendar, MapPin,
@@ -22,15 +31,15 @@ export const renderAdminRoutes = () => (
       }
     >
       <Route index element={<AdminOverview />} />
-      <Route path="users" element={<ComingSoon title="Users" icon={Users} />} />
-      <Route path="partners" element={<ComingSoon title="Partners" icon={Wrench} />} />
-      <Route path="services" element={<ComingSoon title="Services" icon={Briefcase} />} />
-      <Route path="bookings" element={<ComingSoon title="Bookings" icon={Calendar} />} />
-      <Route path="tracking" element={<ComingSoon title="Live Tracking" icon={MapPin} />} />
-      <Route path="finance" element={<ComingSoon title="Finance" icon={IndianRupee} />} />
-      <Route path="marketing" element={<ComingSoon title="Marketing" icon={Gift} />} />
-      <Route path="support" element={<ComingSoon title="Support" icon={MessageSquare} />} />
-      <Route path="analytics" element={<ComingSoon title="Analytics" icon={BarChart2} />} />
+      <Route path="users" element={<AdminUsers />} />
+      <Route path="partners" element={<AdminPartners />} />
+      <Route path="services" element={<AdminServices />} />
+      <Route path="bookings" element={<AdminBookings />} />
+      <Route path="tracking" element={<AdminLiveTracking />} />
+      <Route path="finance" element={<AdminFinance />} />
+      <Route path="marketing" element={<AdminMarketing />} />
+      <Route path="support" element={<AdminSupport />} />
+      <Route path="analytics" element={<AdminAnalytics />} />
       <Route path="notifications" element={<ComingSoon title="Notifications" icon={Bell} />} />
       <Route path="settings" element={<ComingSoon title="Settings" icon={Settings} />} />
       <Route path="profile" element={<ComingSoon title="Profile" icon={Users} />} />

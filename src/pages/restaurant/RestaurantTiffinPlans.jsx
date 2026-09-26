@@ -4,7 +4,8 @@ import {
   getRestaurantTiffinPlansAPI,
   createRestaurantTiffinPlanAPI,
   updateRestaurantTiffinPlanAPI,
-  toggleTiffinPlanStatusAPI
+  toggleTiffinPlanStatusAPI,
+  deleteRestaurantTiffinPlanAPI
 } from '../../services/subscription/subscriptionService.js';
 import {
   Calendar,
@@ -14,10 +15,69 @@ import {
   ArrowLeft,
   Utensils,
   AlertCircle,
-  Trash2
+  Trash2,
+  Settings,
+  Eye,
+  MoreVertical
 } from 'lucide-react';
 import DataTable from '../../components/common/Table/DataTable';
 import { useDataTableSync } from '../../hooks/useDataTableSync';
+
+const ActionDropdown = ({ row, onEdit, onToggleStatus, onDelete }) => {
+  const [open, setOpen] = useState(false);
+  
+  useEffect(() => {
+    const handleClick = () => setOpen(false);
+    if (open) window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, [open]);
+
+  return (
+    <div className="relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="p-1.5 bg-gray-100 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+        title="Settings"
+      >
+        <Settings size={16} />
+      </button>
+      
+      {open && (
+        <div className="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-lg border border-gray-100 z-10 py-1 overflow-hidden">
+          <button
+            onClick={() => { setOpen(false); onEdit(row); }}
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+          >
+            <Eye size={14} className="text-gray-500" />
+            View Plan
+          </button>
+          <button
+            onClick={() => { setOpen(false); onEdit(row); }}
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+          >
+            <Edit2 size={14} className="text-blue-500" />
+            Edit Plan
+          </button>
+          <button
+            onClick={() => { setOpen(false); onToggleStatus(row._id, row.status); }}
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+          >
+            <Power size={14} className={row.status === 'ACTIVE' ? 'text-amber-500' : 'text-emerald-500'} />
+            {row.status === 'ACTIVE' ? 'Disable Plan' : 'Enable Plan'}
+          </button>
+          <div className="h-[1px] bg-gray-100 my-1"></div>
+          <button
+            onClick={() => { setOpen(false); onDelete(row._id); }}
+            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+          >
+            <Trash2 size={14} className="text-red-500" />
+            Delete Plan
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const RestaurantTiffinPlans = () => {
   const navigate = useNavigate();
@@ -86,11 +146,11 @@ const RestaurantTiffinPlans = () => {
       const resData = await response.json();
       
       if (response.ok && resData.success) {
-        setPlans(resData.data || []);
+        setPlans(resData.data?.plans || resData.data || []);
         if (resData.meta && resData.meta.pagination) {
           setTotal(resData.meta.pagination.total);
         } else {
-          setTotal(resData.data?.length || 0);
+          setTotal(resData.data?.plans?.length || 0);
         }
       } else {
         setError(resData.message || 'Failed to load restaurant tiffin plans');
@@ -205,15 +265,41 @@ const RestaurantTiffinPlans = () => {
     }
   };
 
+  const handleDeletePlan = async (planId) => {
+    if (window.confirm('Are you sure you want to delete this tiffin plan?')) {
+      try {
+        const res = await deleteRestaurantTiffinPlanAPI(planId);
+        if (res.ok && res.data.success) {
+          fetchPlans();
+        } else {
+          alert(res.data.message || 'Failed to delete plan');
+        }
+      } catch (err) {
+        alert('Error deleting plan');
+      }
+    }
+  };
+
+
   const columns = [
+    {
+      key: 'srNo',
+      label: 'Sr. No.',
+      align: 'center',
+      render: (_, rowIndex) => (
+        <span className="text-gray-500 font-medium text-sm">
+          {((page - 1) * limit) + rowIndex + 1}
+        </span>
+      )
+    },
     {
       key: 'name',
       label: 'Plan Name',
       sortable: true,
       render: (row) => (
         <div className="flex flex-col">
-          <span className="font-bold text-white text-sm">{row.name || row.planName}</span>
-          <span className="text-xs text-slate-400 line-clamp-1 max-w-[200px]">{row.description}</span>
+          <span className="font-bold text-gray-900 text-sm">{row.name || row.planName}</span>
+          <span className="text-xs text-gray-500 line-clamp-1 max-w-[200px]">{row.description}</span>
         </div>
       )
     },
@@ -233,7 +319,7 @@ const RestaurantTiffinPlans = () => {
       sortable: true,
       align: 'center',
       render: (row) => (
-        <span className="text-xs font-semibold text-slate-300 bg-indigo-500/10 border border-indigo-500/30 px-2.5 py-0.5 rounded-full">
+        <span className="text-xs font-semibold text-gray-700 bg-indigo-500/10 border border-indigo-500/30 px-2.5 py-0.5 rounded-full">
           {row.planDurationDays || row.durationDays} Days
         </span>
       )
@@ -255,7 +341,7 @@ const RestaurantTiffinPlans = () => {
       sortable: true,
       align: 'right',
       render: (row) => (
-        <span className="font-bold text-white text-sm">
+        <span className="font-bold text-gray-900 text-sm">
           ₹{row.totalPrice}
         </span>
       )
@@ -269,7 +355,7 @@ const RestaurantTiffinPlans = () => {
         const isActive = row.status === 'ACTIVE';
         return (
           <span className={`px-2.5 py-0.5 border text-[10px] font-bold rounded-full ${
-            isActive ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-800 text-slate-500 border-slate-700'
+            isActive ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-gray-100 text-gray-500 border-gray-200'
           }`}>
             {isActive ? 'ACTIVE' : 'INACTIVE'}
           </span>
@@ -281,26 +367,12 @@ const RestaurantTiffinPlans = () => {
       label: 'Actions',
       align: 'right',
       render: (row) => (
-        <div className="flex items-center justify-end gap-2">
-          <button
-            onClick={() => handleToggleStatus(row._id, row.status)}
-            className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
-              row.status === 'ACTIVE' 
-                ? 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20' 
-                : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
-            }`}
-            title={row.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-          >
-            <Power size={14} />
-          </button>
-          <button
-            onClick={() => openEditModal(row)}
-            className="p-1.5 bg-slate-800 border border-slate-700 text-white rounded-lg hover:bg-slate-700 transition-colors cursor-pointer"
-            title="Edit Plan"
-          >
-            <Edit2 size={14} />
-          </button>
-        </div>
+        <ActionDropdown 
+          row={row} 
+          onEdit={openEditModal} 
+          onToggleStatus={handleToggleStatus} 
+          onDelete={handleDeletePlan} 
+        />
       )
     }
   ];
@@ -330,28 +402,28 @@ const RestaurantTiffinPlans = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col p-4 md:p-6">
+    <div className="min-h-screen bg-slate-50 text-gray-900 font-sans flex flex-col p-4 md:p-6">
       {/* Header */}
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4 mb-6">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-4 mb-6">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/restaurant')}
-            className="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center hover:bg-slate-800 cursor-pointer transition-colors"
+            className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100 cursor-pointer transition-colors"
           >
-            <ArrowLeft size={18} className="text-white" />
+            <ArrowLeft size={18} className="text-gray-900" />
           </button>
           <div>
-            <h1 className="text-xl font-black text-white flex items-center gap-2">
+            <h1 className="text-xl font-black text-gray-900 flex items-center gap-2">
               <Calendar size={22} className="text-[#d4af37]" />
               Tiffin Plan Management
             </h1>
-            <p className="text-xs text-slate-400 mt-1">Manage Daily Meal Subscription Offers for Customers</p>
+            <p className="text-xs text-gray-500 mt-1">Manage Daily Meal Subscription Offers for Customers</p>
           </div>
         </div>
 
         <button
           onClick={openCreateModal}
-          className="px-4 py-2.5 bg-[#d4af37] text-slate-950 font-bold rounded-xl text-sm hover:brightness-110 cursor-pointer flex items-center gap-1.5 shadow-lg shadow-[#d4af37]/10 transition-all"
+          className="px-4 py-2.5 bg-[#1e1e2e] text-[#d4af37] font-bold rounded-xl text-sm hover:brightness-110 cursor-pointer flex items-center gap-1.5 shadow-lg shadow-[#d4af37]/10 transition-all"
         >
           <Plus size={18} />
           Create Tiffin Plan
@@ -367,23 +439,23 @@ const RestaurantTiffinPlans = () => {
           </div>
         )}
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
           <DataTable
             columns={columns}
             data={plans}
             loading={loading}
-            emptyMessage={
+            emptyState={
               <div className="py-12 flex flex-col items-center justify-center text-center space-y-4">
-                <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center">
-                  <Utensils size={32} className="text-slate-500" />
+                <div className="w-16 h-16 bg-gray-100/50 rounded-full flex items-center justify-center">
+                  <Utensils size={32} className="text-gray-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white mb-1">No Tiffin Plans Found</h3>
-                  <p className="text-sm text-slate-400 max-w-sm mx-auto">Create subscription packages for weekly or monthly recurring lunch and dinner deliveries!</p>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">No Tiffin Plans Found</h3>
+                  <p className="text-sm text-gray-500 max-w-sm mx-auto">Create subscription packages for weekly or monthly recurring lunch and dinner deliveries!</p>
                 </div>
                 <button
                   onClick={openCreateModal}
-                  className="px-5 py-2 bg-[#d4af37] text-slate-950 font-bold rounded-lg text-sm mt-2 hover:bg-[#c5a028] transition-colors cursor-pointer"
+                  className="px-5 py-2 bg-[#1e1e2e] text-[#d4af37] font-bold rounded-lg text-sm mt-2 hover:bg-black transition-colors cursor-pointer"
                 >
                   Create Your First Plan
                 </button>
@@ -406,149 +478,159 @@ const RestaurantTiffinPlans = () => {
             onLimitChange={setLimit}
             
             // Adjust pagination text to look good in dark mode
-            paginationClassName="text-slate-300"
+            paginationClassName="text-gray-700"
           />
         </div>
       </main>
 
       {/* Create / Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-xl w-full space-y-5 shadow-2xl my-8">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-4">
-              <Calendar size={22} className="text-[#d4af37]" />
-              {editingPlan ? 'Edit Tiffin Plan' : 'Create New Tiffin Plan'}
-            </h2>
+        <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 z-[100] animate-fadeIn">
+          <div className="bg-white rounded-[2rem] p-8 max-w-xl w-full space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-5">
+              <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                <Calendar size={24} className="text-[#d4af37]" />
+                {editingPlan ? 'Edit Tiffin Plan' : 'Create New Tiffin Plan'}
+              </h2>
+              <button 
+                onClick={() => setShowModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-full hover:bg-gray-50"
+              >
+                &times;
+              </button>
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4 text-sm">
-              <div className="space-y-1.5">
-                <label className="text-slate-300 font-bold">Plan Name *</label>
+            <form onSubmit={handleSubmit} className="space-y-5 text-sm">
+              <div className="space-y-2">
+                <label className="text-gray-700 font-bold text-xs uppercase tracking-wider">Plan Name *</label>
                 <input
                   type="text"
                   required
                   value={planName}
                   onChange={(e) => setPlanName(e.target.value)}
                   placeholder="e.g. Executive Lunch Thali"
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-[#d4af37] transition-all"
+                  className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#d4af37]/30 focus:border-[#d4af37] transition-all"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-slate-300 font-bold">Description</label>
+              <div className="space-y-2">
+                <label className="text-gray-700 font-bold text-xs uppercase tracking-wider">Description</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Fresh home style meals delivered daily..."
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-[#d4af37] h-24 resize-none transition-all"
+                  className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#d4af37]/30 focus:border-[#d4af37] h-24 resize-none transition-all"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-slate-300 font-bold">Meal Type</label>
+              <div className="grid grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <label className="text-gray-700 font-bold text-xs uppercase tracking-wider">Meal Type</label>
                   <select
                     value={mealType}
                     onChange={(e) => setMealType(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-[#d4af37] transition-all"
+                    className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#d4af37]/30 focus:border-[#d4af37] transition-all"
                   >
-                    <option value="LUNCH">LUNCH</option>
-                    <option value="DINNER">DINNER</option>
-                    <option value="BOTH">BOTH</option>
+                    <option value="LUNCH">Lunch Only</option>
+                    <option value="DINNER">Dinner Only</option>
+                    <option value="BOTH">Lunch & Dinner</option>
                   </select>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-slate-300 font-bold">Duration (Days)</label>
+                <div className="space-y-2">
+                  <label className="text-gray-700 font-bold text-xs uppercase tracking-wider">Duration (Days)</label>
                   <input
                     type="number"
                     min="1"
                     value={durationDays}
                     onChange={(e) => setDurationDays(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-[#d4af37] transition-all"
+                    className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#d4af37]/30 focus:border-[#d4af37] transition-all"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-slate-300 font-bold">Price Per Meal (₹) *</label>
+              <div className="grid grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <label className="text-gray-700 font-bold text-xs uppercase tracking-wider">Price Per Meal (₹) *</label>
                   <input
                     type="number"
                     required
                     min="1"
                     value={pricePerMeal}
                     onChange={(e) => setPricePerMeal(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-[#d4af37] transition-all"
+                    className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#d4af37]/30 focus:border-[#d4af37] transition-all"
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-slate-300 font-bold">Discount %</label>
+                <div className="space-y-2">
+                  <label className="text-gray-700 font-bold text-xs uppercase tracking-wider">Discount %</label>
                   <input
                     type="number"
                     min="0"
                     max="100"
                     value={discountPercentage}
                     onChange={(e) => setDiscountPercentage(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-[#d4af37] transition-all"
+                    className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#d4af37]/30 focus:border-[#d4af37] transition-all"
                   />
                 </div>
               </div>
 
               {/* Items List */}
-              <div className="space-y-3 border-t border-slate-800 pt-4 mt-2">
+              <div className="space-y-4 border-t border-gray-100 pt-5 mt-4">
                 <div className="flex items-center justify-between">
-                  <label className="text-slate-300 font-bold">Included Daily Menu Items</label>
+                  <label className="text-gray-700 font-bold text-xs uppercase tracking-wider">Included Daily Menu Items</label>
                   <button
                     type="button"
                     onClick={handleAddItem}
-                    className="text-xs text-[#d4af37] font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                    className="text-xs text-white bg-[#1e1e2e] hover:bg-black px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 cursor-pointer transition-colors"
                   >
                     <Plus size={14} /> Add Item
                   </button>
                 </div>
 
-                {items.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-3">
-                    <input
-                      type="text"
-                      placeholder="Item name"
-                      value={item.name}
-                      onChange={(e) => handleItemChange(idx, 'name', e.target.value)}
-                      className="flex-1 px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-[#d4af37] transition-all"
-                    />
-                    <input
-                      type="number"
-                      min="1"
-                      placeholder="Qty"
-                      value={item.quantity}
-                      onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
-                      className="w-20 px-3 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-center focus:outline-none focus:border-[#d4af37] transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveItem(idx)}
-                      className="text-red-400 hover:text-red-300 p-2 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                ))}
+                <div className="space-y-3">
+                  {items.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-3 bg-white border border-gray-100 p-2 rounded-2xl shadow-sm">
+                      <input
+                        type="text"
+                        placeholder="Item name (e.g. Roti)"
+                        value={item.name}
+                        onChange={(e) => handleItemChange(idx, 'name', e.target.value)}
+                        className="flex-1 px-4 py-2.5 bg-gray-50 border-none rounded-xl text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#d4af37]/30 transition-all"
+                      />
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="Qty"
+                        value={item.quantity}
+                        onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
+                        className="w-20 px-3 py-2.5 bg-gray-50 border-none rounded-xl text-gray-900 text-center focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#d4af37]/30 transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem(idx)}
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50 p-2.5 rounded-xl transition-colors cursor-pointer"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Action buttons */}
-              <div className="flex items-center justify-end gap-3 border-t border-slate-800 pt-5 mt-4">
+              <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-6 mt-6">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-5 py-2.5 bg-slate-800 text-slate-300 font-bold rounded-xl hover:bg-slate-700 transition-colors cursor-pointer"
+                  className="px-6 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-6 py-2.5 bg-[#d4af37] text-slate-950 font-black rounded-xl hover:bg-[#c5a028] disabled:opacity-50 cursor-pointer transition-colors shadow-lg shadow-[#d4af37]/10"
+                  className="px-8 py-3 bg-[#1e1e2e] text-[#d4af37] font-black rounded-xl hover:bg-black disabled:opacity-50 cursor-pointer transition-colors shadow-lg shadow-[#1e1e2e]/20"
                 >
                   {submitting ? 'Saving...' : 'Save Tiffin Plan'}
                 </button>

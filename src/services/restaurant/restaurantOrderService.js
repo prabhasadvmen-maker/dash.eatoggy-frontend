@@ -7,7 +7,7 @@ import { getRestaurantHeaders } from './restaurantAuthService.js';
 export const getRestaurantOrdersAPI = async (params = '') => {
   const headers = await getRestaurantHeaders();
   const queryParam = params && !params.startsWith('?') ? `?${params}` : params;
-  const response = await fetch(`${API_BASE_URL}/api/restaurant-admin/orders${queryParam}`, {
+  const response = await fetch(`${API_BASE_URL}/api/restaurants/orders${queryParam}`, {
     method: 'GET',
     headers
   });
@@ -20,7 +20,7 @@ export const getRestaurantOrdersAPI = async (params = '') => {
  */
 export const getRestaurantOrderByIdAPI = async (orderId) => {
   const headers = await getRestaurantHeaders();
-  const response = await fetch(`${API_BASE_URL}/api/restaurant-admin/orders/${orderId}`, {
+  const response = await fetch(`${API_BASE_URL}/api/restaurants/orders/${orderId}`, {
     method: 'GET',
     headers
   });
@@ -33,7 +33,7 @@ export const getRestaurantOrderByIdAPI = async (orderId) => {
  */
 export const updateRestaurantOrderStatusAPI = async (orderId, newStatus, reason = '', notes = '') => {
   const headers = await getRestaurantHeaders();
-  const response = await fetch(`${API_BASE_URL}/api/restaurant-admin/orders/${orderId}/status`, {
+  const response = await fetch(`${API_BASE_URL}/api/restaurants/orders/${orderId}/status`, {
     method: 'PATCH',
     headers,
     body: JSON.stringify({ status: newStatus, reason, notes })

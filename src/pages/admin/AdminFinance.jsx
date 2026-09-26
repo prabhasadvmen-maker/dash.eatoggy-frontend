@@ -50,7 +50,7 @@ const ActionDropdown = ({ row, onRefund, onViewDetail }) => {
   );
 };
 
-const SuperAdminPayments = () => {
+const AdminFinance = () => {
   const {
     page, setPage,
     limit, setLimit,
@@ -70,6 +70,7 @@ const SuperAdminPayments = () => {
   
   const [refundModal, setRefundModal] = useState({ open: false, payment: null, reason: '' });
   const [detailModal, setDetailModal] = useState({ open: false, payment: null });
+  const [stats, setStats] = useState({ totalRevenue: 0 });
   const [refunding, setRefunding] = useState(false);
 
   const fetchPayments = useCallback(async () => {
@@ -92,9 +93,9 @@ const SuperAdminPayments = () => {
         }
       });
 
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/payments?${queryParams.toString()}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admins/finance?${queryParams.toString()}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('superadmin_token')}`
+          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
         }
       });
       const data = await response.json();
@@ -107,6 +108,9 @@ const SuperAdminPayments = () => {
           setTotal(data.pagination.total);
         } else {
           setTotal(data.data?.length || 0);
+        }
+        if (data.stats) {
+          setStats(data.stats);
         }
       } else {
         setError(data.message || 'Failed to fetch payments');
@@ -128,11 +132,11 @@ const SuperAdminPayments = () => {
     setRefunding(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/payments/${refundModal.payment._id}/refund`, {
+      const response = await fetch(`${API_BASE_URL}/api/admins/payments/${refundModal.payment._id}/refund`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('superadmin_token')}`
+          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
         },
         body: JSON.stringify({ reason: refundModal.reason })
       });
@@ -313,8 +317,21 @@ const SuperAdminPayments = () => {
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Master Payments & Transactions</h1>
-          <p className="text-slate-400 mt-1">Audit Razorpay payment receipts, signatures, and process customer refunds</p>
+          <h1 className="text-3xl font-bold text-slate-800">Finance & Payments</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Monitor and manage platform revenue, customer payments, and refunds.
+          </p>
+        </div>
+        <div className="flex gap-4">
+          <div className="bg-emerald-50 px-5 py-3 rounded-xl border border-emerald-100 flex items-center gap-3">
+            <div className="p-2 bg-emerald-100 rounded-lg">
+              <Banknote className="text-emerald-600" size={24} />
+            </div>
+            <div>
+              <p className="text-xs text-emerald-800 font-bold uppercase tracking-wider">Total Revenue</p>
+              <p className="text-xl font-black text-emerald-700">₹{stats.totalRevenue?.toLocaleString('en-IN') || 0}</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -489,4 +506,4 @@ const SuperAdminPayments = () => {
   );
 };
 
-export default SuperAdminPayments;
+export default AdminFinance;

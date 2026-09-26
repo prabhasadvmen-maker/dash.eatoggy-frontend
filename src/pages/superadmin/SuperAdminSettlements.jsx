@@ -1,8 +1,77 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Landmark, ShieldAlert, Plus, X, AlertCircle, Eye } from 'lucide-react';
+import { Landmark, ShieldAlert, Plus, X, AlertCircle, Eye, Settings, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import API_BASE_URL from '../../services/apiService';
 import DataTable from '../../components/common/Table/DataTable';
 import { useDataTableSync } from '../../hooks/useDataTableSync';
+const ActionDropdown = ({ row, onProcess, onMarkPaid, onMarkFailed, onViewDetail, processing }) => {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const handleClick = () => setOpen(false);
+    if (open) window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, [open]);
+
+  return (
+    <div className="relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="p-1.5 bg-gray-100 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+        title="Settings"
+      >
+        <Settings size={16} />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 z-10 py-1 overflow-hidden">
+          <button
+            onClick={() => { setOpen(false); onViewDetail(row._id); }}
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+          >
+            <Eye size={14} className="text-gray-500" />
+            View Details
+          </button>
+          
+          {row.status === 'PENDING' && (
+            <button
+              onClick={() => { setOpen(false); onProcess(row._id); }}
+              disabled={processing}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw size={14} className="text-blue-500" />
+              Process
+            </button>
+          )}
+
+          {(row.status === 'PENDING' || row.status === 'PROCESSING') && (
+            <button
+              onClick={() => { setOpen(false); onMarkPaid(row); }}
+              disabled={processing}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors disabled:opacity-50"
+            >
+              <CheckCircle size={14} className="text-emerald-500" />
+              Mark Paid
+            </button>
+          )}
+
+          {row.status === 'PROCESSING' && (
+            <div className="h-[1px] bg-gray-100 my-1"></div>
+          )}
+          {row.status === 'PROCESSING' && (
+            <button
+              onClick={() => { setOpen(false); onMarkFailed(row); }}
+              disabled={processing}
+              className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors disabled:opacity-50"
+            >
+              <XCircle size={14} className="text-red-500" />
+              Mark Failed
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const SuperAdminSettlements = () => {
   const {
@@ -268,7 +337,7 @@ const SuperAdminSettlements = () => {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    return new Date(dateString).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
   };
 
   const getStatusBadge = (status) => {
@@ -287,19 +356,41 @@ const SuperAdminSettlements = () => {
 
   const columns = [
     {
+      key: 'srNo',
+      label: 'Sr. No.',
+      align: 'center',
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
+      render: (_, rowIndex) => (
+        <span className="text-gray-500 font-medium text-sm">
+          {((page - 1) * limit) + rowIndex + 1}
+        </span>
+      )
+    },
+    {
       key: 'settlementNumber',
       label: 'Settlement #',
       sortable: false,
-      render: (row) => <span className="font-bold text-slate-800 font-mono text-xs">{row.settlementNumber}</span>
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
+      render: (row) => (
+        <span className="font-bold text-slate-800 font-mono text-xs whitespace-nowrap truncate max-w-[120px] inline-block" title={row.settlementNumber}>
+          {row.settlementNumber}
+        </span>
+      )
     },
     {
       key: 'partnerName',
       label: 'Partner Name',
       sortable: false,
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
       render: (row) => (
-        <div>
-          <div className="font-medium text-slate-700">{row.entityType === 'RESTAURANT' ? row.restaurantId?.restaurantName || row.restaurantId?.name || 'Restaurant' : row.deliveryPartnerId?.fullName || 'Rider'}</div>
-          <div className="text-xs text-gray-400 font-semibold">{row.entityType}</div>
+        <div className="whitespace-nowrap">
+          <div className="font-medium text-slate-700 truncate max-w-[150px]" title={row.entityType === 'RESTAURANT' ? row.restaurantId?.restaurantName || row.restaurantId?.name || 'Restaurant' : row.deliveryPartnerId?.fullName || 'Rider'}>
+            {row.entityType === 'RESTAURANT' ? row.restaurantId?.restaurantName || row.restaurantId?.name || 'Restaurant' : row.deliveryPartnerId?.fullName || 'Rider'}
+          </div>
+          <div className="text-[10px] text-gray-400 font-semibold">{row.entityType}</div>
         </div>
       )
     },
@@ -307,6 +398,8 @@ const SuperAdminSettlements = () => {
       key: 'period',
       label: 'Period',
       sortable: false,
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
       render: (row) => (
         <span className="text-slate-500 font-medium whitespace-nowrap text-xs">
           {formatDate(row.periodStart)} – {formatDate(row.periodEnd)}
@@ -318,6 +411,8 @@ const SuperAdminSettlements = () => {
       label: 'Orders',
       sortable: false,
       align: 'center',
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
       render: (row) => <span className="font-bold text-slate-700">{row.totalOrdersCount}</span>
     },
     {
@@ -325,15 +420,19 @@ const SuperAdminSettlements = () => {
       label: 'Gross',
       sortable: false,
       align: 'center',
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
       render: (row) => <span className="font-bold text-slate-800">₹{row.grossEarnings}</span>
     },
     {
       key: 'deductions',
-      label: 'Commission / Tax',
+      label: 'Comm. / Tax',
       sortable: false,
       align: 'center',
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
       render: (row) => (
-        <span className="font-semibold text-red-600 text-xs">
+        <span className="font-semibold text-red-600 text-xs whitespace-nowrap">
           -₹{(row.platformCommissionDeduction || 0) + (row.taxDeduction || 0) + (row.refundDeduction || 0)}
         </span>
       )
@@ -343,59 +442,34 @@ const SuperAdminSettlements = () => {
       label: 'Net Payout',
       sortable: true,
       align: 'center',
-      render: (row) => <span className="font-bold text-emerald-700 text-base">₹{row.netPayoutAmount}</span>
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
+      render: (row) => <span className="font-bold text-emerald-700 text-base whitespace-nowrap">₹{row.netPayoutAmount}</span>
     },
     {
       key: 'status',
       label: 'Status',
       sortable: true,
       align: 'center',
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
       render: (row) => getStatusBadge(row.status)
     },
     {
       key: 'actions',
       label: 'Action',
       align: 'right',
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
       render: (row) => (
-        <div className="flex items-center justify-end gap-2">
-          <button
-            onClick={() => handleOpenDetail(row._id)}
-            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-            title="View Details"
-          >
-            <Eye size={16} />
-          </button>
-
-          {row.status === 'PENDING' && (
-            <button
-              onClick={() => handleProcessSettlement(row._id)}
-              disabled={processing}
-              className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 cursor-pointer"
-            >
-              Process
-            </button>
-          )}
-
-          {(row.status === 'PENDING' || row.status === 'PROCESSING') && (
-            <button
-              onClick={() => setPayoutModal({ open: true, settlement: row, ref: '', notes: '' })}
-              disabled={processing}
-              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 cursor-pointer"
-            >
-              Mark Paid
-            </button>
-          )}
-
-          {row.status === 'PROCESSING' && (
-            <button
-              onClick={() => setFailModal({ open: true, settlement: row, reason: '', notes: '' })}
-              disabled={processing}
-              className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 cursor-pointer"
-            >
-              Fail
-            </button>
-          )}
-        </div>
+        <ActionDropdown
+          row={row}
+          onProcess={handleProcessSettlement}
+          onMarkPaid={(row) => setPayoutModal({ open: true, settlement: row, ref: '', notes: '' })}
+          onMarkFailed={(row) => setFailModal({ open: true, settlement: row, reason: '', notes: '' })}
+          onViewDetail={handleOpenDetail}
+          processing={processing}
+        />
       )
     }
   ];

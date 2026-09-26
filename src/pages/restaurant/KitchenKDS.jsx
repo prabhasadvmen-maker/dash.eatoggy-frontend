@@ -167,37 +167,37 @@ const KitchenKDS = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 text-slate-100 font-sans min-h-screen bg-slate-950" data-testid="kitchen-kds-page">
+    <div className="p-4 sm:p-6 space-y-6 text-gray-900 font-sans min-h-screen bg-slate-50" data-testid="kitchen-kds-page">
       {/* Top KDS Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 pb-5">
         <div>
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-gradient-to-br from-[#d4af37]/20 to-amber-600/20 border border-[#d4af37]/40 rounded-2xl">
               <ChefHat size={28} className="text-[#d4af37]" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2">
+              <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2">
                 Kitchen Display System (KDS)
               </h1>
-              <p className="text-xs text-slate-400 mt-0.5">Live Production Queue • Preparation Timers • Real-Time Orders</p>
+              <p className="text-xs text-gray-500 mt-0.5">Live Production Queue • Preparation Timers • Real-Time Orders</p>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-3 self-start md:self-auto">
           {/* Active Orders Summary Pills */}
-          <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 rounded-2xl text-xs">
-            <span className="text-slate-400 font-medium">Active Queue:</span>
+          <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-2xl text-xs">
+            <span className="text-gray-500 font-medium">Active Queue:</span>
             <span className="font-bold text-[#d4af37]">{orders.length}</span>
-            <span className="text-slate-600">|</span>
-            <span className="text-blue-400 font-bold">{preparingOrders.length} In Prep</span>
-            <span className="text-slate-600">|</span>
+            <span className="text-gray-400">|</span>
+            <span className="text-[#d4af37] font-bold">{preparingOrders.length} In Prep</span>
+            <span className="text-gray-400">|</span>
             <span className="text-purple-400 font-bold">{readyOrders.length} Ready</span>
           </div>
 
           <button
             onClick={() => fetchQueue(activeTab)}
-            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold rounded-xl text-xs flex items-center gap-2 cursor-pointer border border-slate-800 transition-colors"
+            className="px-4 py-2.5 bg-white hover:bg-gray-100 text-gray-700 font-bold rounded-xl text-xs flex items-center gap-2 cursor-pointer border border-gray-200 transition-colors"
             data-testid="kds-refresh-btn"
           >
             <RotateCcw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
@@ -206,7 +206,7 @@ const KitchenKDS = () => {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
+      <div className="flex gap-2 border-b border-gray-200 pb-2 overflow-x-auto">
         {[
           { key: 'ALL', label: `All Kitchen Orders (${orders.length})` },
           { key: 'ACCEPTED', label: `Accepted / Queue (${acceptedOrders.length})` },
@@ -218,8 +218,8 @@ const KitchenKDS = () => {
             onClick={() => setActiveTab(tab.key)}
             className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
               activeTab === tab.key
-                ? 'bg-[#d4af37] text-slate-950 shadow-lg shadow-[#d4af37]/20 font-black'
-                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                ? 'bg-[#1e1e2e] text-[#d4af37] shadow-md font-black'
+                : 'bg-white text-gray-500 hover:bg-gray-50 text-gray-700 border border-gray-200'
             }`}
             data-testid={`kds-tab-${tab.key.toLowerCase()}`}
           >
@@ -251,10 +251,10 @@ const KitchenKDS = () => {
           <p className="text-xs text-[#d4af37] font-bold mt-4">Loading kitchen display system queue...</p>
         </div>
       ) : orders.length === 0 ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-16 text-center space-y-3 shadow-2xl" data-testid="empty-kitchen-queue">
-          <UtensilsCrossed size={52} className="text-slate-700 mx-auto" />
-          <h3 className="text-lg font-bold text-white">No Orders in Kitchen Queue</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+        <div className="bg-white border border-gray-200 rounded-3xl p-16 text-center space-y-3 shadow-sm" data-testid="empty-kitchen-queue">
+          <UtensilsCrossed size={52} className="text-gray-400 mx-auto" />
+          <h3 className="text-lg font-bold text-gray-900">No Orders in Kitchen Queue</h3>
+          <p className="text-xs text-gray-500 max-w-sm mx-auto">
             All kitchen orders are up to date! New accepted customer orders will appear here in real-time.
           </p>
         </div>
@@ -263,7 +263,7 @@ const KitchenKDS = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Column 1: ACCEPTED / QUEUE */}
           <div className="space-y-4" data-testid="kds-column-accepted">
-            <div className="flex items-center justify-between bg-slate-900 border border-amber-500/30 p-3.5 rounded-2xl">
+            <div className="flex items-center justify-between bg-white border border-amber-500/30 p-3.5 rounded-2xl">
               <span className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
                 <Clock size={16} /> New Orders ({acceptedOrders.length})
               </span>
@@ -271,7 +271,7 @@ const KitchenKDS = () => {
             </div>
 
             {acceptedOrders.length === 0 ? (
-              <div className="p-8 border border-dashed border-slate-800 rounded-2xl text-center text-slate-600 text-xs">
+              <div className="p-8 border border-dashed border-gray-300 rounded-2xl text-center text-gray-400 text-xs">
                 No orders waiting to prep
               </div>
             ) : (
@@ -281,15 +281,15 @@ const KitchenKDS = () => {
 
           {/* Column 2: PREPARING / IN PRODUCTION */}
           <div className="space-y-4" data-testid="kds-column-preparing">
-            <div className="flex items-center justify-between bg-slate-900 border border-blue-500/30 p-3.5 rounded-2xl">
-              <span className="text-xs font-bold uppercase tracking-wider text-blue-400 flex items-center gap-2">
+            <div className="flex items-center justify-between bg-white border border-[#d4af37]/30 p-3.5 rounded-2xl">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#d4af37] flex items-center gap-2">
                 <Flame size={16} /> In Production ({preparingOrders.length})
               </span>
-              <span className="text-[10px] px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded-md font-mono">STEP 2</span>
+              <span className="text-[10px] px-2 py-0.5 bg-[#d4af37]/10 text-[#d4af37] rounded-md font-mono">STEP 2</span>
             </div>
 
             {preparingOrders.length === 0 ? (
-              <div className="p-8 border border-dashed border-slate-800 rounded-2xl text-center text-slate-600 text-xs">
+              <div className="p-8 border border-dashed border-gray-300 rounded-2xl text-center text-gray-400 text-xs">
                 No orders currently in prep
               </div>
             ) : (
@@ -299,7 +299,7 @@ const KitchenKDS = () => {
 
           {/* Column 3: READY / HANDOFF */}
           <div className="space-y-4" data-testid="kds-column-ready">
-            <div className="flex items-center justify-between bg-slate-900 border border-purple-500/30 p-3.5 rounded-2xl">
+            <div className="flex items-center justify-between bg-white border border-purple-500/30 p-3.5 rounded-2xl">
               <span className="text-xs font-bold uppercase tracking-wider text-purple-400 flex items-center gap-2">
                 <CheckCircle2 size={16} /> Ready for Pickup ({readyOrders.length})
               </span>
@@ -307,7 +307,7 @@ const KitchenKDS = () => {
             </div>
 
             {readyOrders.length === 0 ? (
-              <div className="p-8 border border-dashed border-slate-800 rounded-2xl text-center text-slate-600 text-xs">
+              <div className="p-8 border border-dashed border-gray-300 rounded-2xl text-center text-gray-400 text-xs">
                 No orders ready for pickup
               </div>
             ) : (
@@ -337,23 +337,23 @@ const KDSCard = ({ order, onStatusUpdate, updatingId, formatTimer, isDelayedOrde
 
   return (
     <div
-      className={`bg-slate-900 border rounded-3xl p-5 space-y-4 shadow-xl transition-all flex flex-col justify-between ${
+      className={`bg-white border rounded-3xl p-5 space-y-4 shadow-xl transition-all flex flex-col justify-between ${
         delayed
           ? 'border-amber-500/60 ring-2 ring-amber-500/20'
           : orderStatus === 'PREPARING'
-          ? 'border-blue-500/40'
+          ? 'border-[#d4af37]/40'
           : orderStatus === 'READY'
           ? 'border-purple-500/40'
-          : 'border-slate-800'
+          : 'border-gray-200'
       }`}
       data-testid="kds-order-card"
     >
       <div className="space-y-3">
         {/* Header: Order #, Priority & Timer */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="flex items-center justify-between border-b border-gray-200 pb-3">
           <div>
             <span className="text-[11px] font-mono text-[#d4af37] font-bold block" data-testid="kds-order-number">{orderNumber}</span>
-            <span className="text-[11px] text-slate-400 block mt-0.5">{new Date(createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+            <span className="text-[11px] text-gray-500 block mt-0.5">{new Date(createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -368,7 +368,7 @@ const KDSCard = ({ order, onStatusUpdate, updatingId, formatTimer, isDelayedOrde
               className={`px-2.5 py-1 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 ${
                 delayed
                   ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse'
-                  : 'bg-slate-950 text-slate-300 border border-slate-800'
+                  : 'bg-slate-50 text-gray-700 border border-gray-200'
               }`}
               data-testid="prep-timer"
             >
@@ -388,19 +388,19 @@ const KDSCard = ({ order, onStatusUpdate, updatingId, formatTimer, isDelayedOrde
 
         {/* Ordered Item Checklist */}
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-gray-500">
             <span>Kitchen Preparation Items ({items.length})</span>
             <span>QTY</span>
           </div>
 
-          <div className="divide-y divide-slate-800 bg-slate-950/60 rounded-2xl p-3 border border-slate-800 space-y-2">
+          <div className="divide-y divide-gray-100 bg-slate-50/60 rounded-2xl p-3 border border-gray-200 space-y-2">
             {items.map((item, idx) => (
               <div key={idx} className="pt-1.5 first:pt-0 flex items-start justify-between text-xs gap-2" data-testid="kds-item">
                 <div className="flex items-start gap-2 min-w-0">
                   <div className={`w-3.5 h-3.5 border flex items-center justify-center p-0.5 rounded-sm shrink-0 mt-0.5 ${item.foodType === 'VEG' ? 'border-emerald-500' : 'border-red-500'}`}>
                     <div className={`w-1.5 h-1.5 rounded-full ${item.foodType === 'VEG' ? 'bg-emerald-500' : 'bg-red-500'}`} />
                   </div>
-                  <span className="font-bold text-white text-sm leading-tight" data-testid="kds-item-name">{item.foodNameSnapshot}</span>
+                  <span className="font-bold text-gray-900 text-sm leading-tight" data-testid="kds-item-name">{item.foodNameSnapshot}</span>
                 </div>
                 <span className="font-black text-[#d4af37] text-sm px-2 py-0.5 bg-[#d4af37]/10 rounded-lg shrink-0" data-testid="kds-item-qty">
                   {item.quantity}x
@@ -412,20 +412,20 @@ const KDSCard = ({ order, onStatusUpdate, updatingId, formatTimer, isDelayedOrde
 
         {/* Special Instructions / Notes */}
         {preparationNotes && (
-          <div className="p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300">
-            <span className="font-bold text-slate-400 text-[10px] uppercase block">Special Kitchen Note:</span>
+          <div className="p-2.5 bg-slate-50 border border-gray-200 rounded-xl text-xs text-gray-700">
+            <span className="font-bold text-gray-500 text-[10px] uppercase block">Special Kitchen Note:</span>
             <span>{preparationNotes}</span>
           </div>
         )}
       </div>
 
       {/* Action Footer */}
-      <div className="pt-3 border-t border-slate-800">
+      <div className="pt-3 border-t border-gray-200">
         {orderStatus === 'ACCEPTED' && (
           <button
             onClick={() => onStatusUpdate(_id, 'PREPARING')}
             disabled={updatingId === _id}
-            className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-colors shadow-lg shadow-blue-500/20"
+            className="w-full py-3 bg-[#1e1e2e] hover:bg-black text-[#d4af37] font-black rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-colors shadow-lg shadow-black/20"
             data-testid="start-prep-btn"
           >
             {updatingId === _id ? <Loader2 size={16} className="animate-spin" /> : <>Start Preparing <Flame size={16} /></>}
@@ -436,7 +436,7 @@ const KDSCard = ({ order, onStatusUpdate, updatingId, formatTimer, isDelayedOrde
           <button
             onClick={() => onStatusUpdate(_id, 'READY')}
             disabled={updatingId === _id}
-            className="w-full py-3 bg-purple-500 hover:bg-purple-600 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-colors shadow-lg shadow-purple-500/20"
+            className="w-full py-3 bg-purple-500 hover:bg-purple-600 text-gray-900 font-black rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-colors shadow-lg shadow-purple-500/20"
             data-testid="mark-ready-btn"
           >
             {updatingId === _id ? <Loader2 size={16} className="animate-spin" /> : <>Mark Order Ready <CheckCircle2 size={16} /></>}

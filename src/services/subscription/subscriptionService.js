@@ -157,6 +157,15 @@ export const toggleTiffinPlanStatusAPI = async (planId, isActive) => {
   return { status: response.status, ok: response.ok, data };
 };
 
+export const deleteRestaurantTiffinPlanAPI = async (planId) => {
+  const response = await fetch(`${API_BASE_URL}/api/restaurants/tiffin-plans/${planId}`, {
+    method: 'DELETE',
+    headers: getRestaurantAuthHeaders()
+  });
+  const data = await response.json();
+  return { status: response.status, ok: response.ok, data };
+};
+
 export default {
   getPublicTiffinPlansAPI,
   getTiffinPlanByIdAPI,
@@ -171,5 +180,6 @@ export default {
   getRestaurantTiffinPlansAPI,
   createRestaurantTiffinPlanAPI,
   updateRestaurantTiffinPlanAPI,
-  toggleTiffinPlanStatusAPI
+  toggleTiffinPlanStatusAPI,
+  deleteRestaurantTiffinPlanAPI
 };

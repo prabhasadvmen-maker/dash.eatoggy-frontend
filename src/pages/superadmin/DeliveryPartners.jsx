@@ -9,13 +9,47 @@ import {
 } from '../../services/superadmin/superAdminDeliveryService';
 import {
   Bike, Eye, IndianRupee, Edit3, Save, X, FileText, CreditCard,
-  CheckCircle2, XCircle
+  CheckCircle2, XCircle, Settings
 } from 'lucide-react';
 import {
   Button, Input, Modal, DataTable, StatusBadge,
   Alert, PageHeader, Spinner
 } from '../../components/common';
 import { useDataTableSync } from '../../hooks/useDataTableSync';
+
+const ActionDropdown = ({ row, onViewDetail }) => {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const handleClick = () => setOpen(false);
+    if (open) window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, [open]);
+
+  return (
+    <div className="relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="p-1.5 bg-gray-100 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+        title="Settings"
+      >
+        <Settings size={16} />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-2 w-36 bg-white rounded-xl shadow-lg border border-gray-100 z-10 py-1 overflow-hidden">
+          <button
+            onClick={() => { setOpen(false); onViewDetail(row); }}
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors cursor-pointer"
+          >
+            <Eye size={14} className="text-gray-500" />
+            View Details
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const DeliveryPartners = () => {
   const {
@@ -88,6 +122,8 @@ const DeliveryPartners = () => {
         setTotalItems(total);
         if (res.data.statusCounts) {
           setStatusCounts(res.data.statusCounts);
+        } else if (res.data.data?.statusCounts) {
+          setStatusCounts(res.data.data.statusCounts);
         } else if (res.data.meta?.statusCounts) {
           setStatusCounts(res.data.meta.statusCounts);
         }
@@ -214,12 +250,26 @@ const DeliveryPartners = () => {
 
   const columns = [
     {
+      key: 'srNo',
+      label: 'Sr. No.',
+      align: 'center',
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
+      render: (_, rowIndex) => (
+        <span className="text-gray-500 font-medium text-sm">
+          {((page - 1) * limit) + rowIndex + 1}
+        </span>
+      )
+    },
+    {
       key: 'fullName',
       label: 'Partner',
       sortable: true,
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
       render: (row) => (
-        <div>
-          <div className="font-bold text-slate-900 text-sm">{row.fullName || 'Name Pending'}</div>
+        <div className="whitespace-nowrap">
+          <div className="font-bold text-slate-900 text-sm truncate max-w-[120px]" title={row.fullName || 'Name Pending'}>{row.fullName || 'Name Pending'}</div>
           <div className="text-slate-500 text-xs font-mono mt-0.5">{row.mobile}</div>
         </div>
       )
@@ -228,10 +278,12 @@ const DeliveryPartners = () => {
       key: 'city',
       label: 'City / Zone',
       sortable: true,
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
       render: (row) => (
-        <div>
-          <div className="font-semibold text-slate-800 text-xs">{row.city || '-'}</div>
-          <div className="text-slate-500 text-xs">{row.zone || '-'}</div>
+        <div className="whitespace-nowrap">
+          <div className="font-semibold text-slate-800 text-xs truncate max-w-[100px]" title={row.city || '-'}>{row.city || '-'}</div>
+          <div className="text-slate-500 text-xs truncate max-w-[100px]" title={row.zone || '-'}>{row.zone || '-'}</div>
         </div>
       )
     },
@@ -239,8 +291,10 @@ const DeliveryPartners = () => {
       key: 'vehicleType',
       label: 'Vehicle',
       sortable: true,
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
       render: (row) => (
-        <span className="px-2.5 py-1 bg-amber-50 border border-[#d4af37] text-[#a58523] rounded-lg font-bold text-xs">
+        <span className="px-2.5 py-1 bg-amber-50 border border-[#d4af37] text-[#a58523] rounded-lg font-bold text-[10px] whitespace-nowrap">
           {row.vehicleType || 'Bike'}
         </span>
       )
@@ -249,15 +303,19 @@ const DeliveryPartners = () => {
       key: 'onboardingStatus',
       label: 'Onboarding Status',
       sortable: true,
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
       render: (row) => <StatusBadge status={row.onboardingStatus} showIcon />
     },
     {
       key: 'createdAt',
       label: 'Registered Date',
       sortable: true,
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
       render: (row) => (
-        <span className="text-slate-600 font-medium text-xs">
-          {new Date(row.createdAt).toLocaleDateString('en-GB')}
+        <span className="text-slate-600 font-medium text-[11px] whitespace-nowrap">
+          {new Date(row.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })}
         </span>
       )
     },
@@ -266,18 +324,13 @@ const DeliveryPartners = () => {
       label: 'Actions',
       align: 'right',
       sortable: false,
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
       render: (row) => (
-        <Button
-          type="button"
-          id={`view-partner-${row._id}`}
-          onClick={() => handleOpenDetails(row._id)}
-          variant="outline"
-          size="sm"
-          icon={Eye}
-          className="ml-auto cursor-pointer"
-        >
-          View Details
-        </Button>
+        <ActionDropdown
+          row={row}
+          onViewDetail={(row) => handleOpenDetails(row._id)}
+        />
       )
     }
   ];

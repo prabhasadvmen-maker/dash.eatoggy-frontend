@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Pencil, Trash2, Plus, X, Image as ImageIcon, AlertCircle, Settings, Eye } from 'lucide-react';
 import {
-  superAdminGetBanners,
-  superAdminCreateBanner,
-  superAdminUpdateBanner,
-  superAdminDeleteBanner,
-  superAdminToggleBannerStatus
-} from '../../services/superadmin/superAdminBannerService';
+  adminGetBanners,
+  adminCreateBanner,
+  adminUpdateBanner,
+  adminDeleteBanner,
+  adminToggleBannerStatus
+} from '../../services/admin/adminBannerService';
 import ConfirmModal from '../../components/common/ConfirmModal/ConfirmModal';
 import DataTable from '../../components/common/Table/DataTable';
 import { useDataTableSync } from '../../hooks/useDataTableSync';
@@ -59,7 +59,7 @@ const ActionDropdown = ({ row, onEdit, onDelete, onView }) => {
   );
 };
 
-const Banners = () => {
+const AdminMarketing = () => {
   const {
     page, setPage,
     limit, setLimit,
@@ -122,7 +122,7 @@ const Banners = () => {
         }
       });
 
-      const res = await superAdminGetBanners(`?${queryParams.toString()}`);
+      const res = await adminGetBanners(`?${queryParams.toString()}`);
       setBanners(res.data || []);
       if (res.meta && res.meta.pagination) {
         setTotal(res.meta.pagination.total);
@@ -205,9 +205,9 @@ const Banners = () => {
       }
 
       if (editingBanner) {
-        await superAdminUpdateBanner(editingBanner._id, data);
+        await adminUpdateBanner(editingBanner._id, data);
       } else {
-        await superAdminCreateBanner(data);
+        await adminCreateBanner(data);
       }
       
       await fetchBanners();
@@ -229,7 +229,7 @@ const Banners = () => {
     
     setFormLoading(true);
     try {
-      await superAdminDeleteBanner(id);
+      await adminDeleteBanner(id);
       setBanners(banners.filter(b => b._id !== id));
       setConfirmModal({ open: false, id: null });
       fetchBanners(); // refresh total
@@ -242,7 +242,7 @@ const Banners = () => {
 
   const handleToggleStatus = async (id) => {
     try {
-      const res = await superAdminToggleBannerStatus(id);
+      const res = await adminToggleBannerStatus(id);
       setBanners(banners.map(b => b._id === id ? res.data : b));
     } catch (err) {
       alert(err.message || 'Failed to toggle status');
@@ -373,8 +373,8 @@ const Banners = () => {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Banner Management</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage hero banners for the customer application</p>
+          <h1 className="text-3xl font-bold text-slate-800">Marketing & Banners</h1>
+          <p className="text-sm text-slate-500 mt-1">Manage promotional banners for the platform</p>
         </div>
         <button
           onClick={() => handleOpenModal()}
@@ -661,4 +661,4 @@ const Banners = () => {
   );
 };
 
-export default Banners;
+export default AdminMarketing;

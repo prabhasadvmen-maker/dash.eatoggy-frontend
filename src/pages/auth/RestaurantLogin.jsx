@@ -32,10 +32,29 @@ const RestaurantLogin = () => {
         return;
       }
 
-      setSuccess('OTP sent successfully!');
+      setSuccess(`OTP sent successfully! ${res.data.otp ? `(OTP: ${res.data.otp})` : ''}`);
       setStep('OTP');
     } catch (err) {
       setError(err.message || 'Something went wrong while sending OTP');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setError('');
+    setSuccess('');
+    setLoading(true);
+    try {
+      const res = await sendOtp(mobile);
+      if (!res.ok) {
+        setError(res.data.message || 'Failed to resend OTP');
+        setLoading(false);
+        return;
+      }
+      setSuccess(`OTP resent successfully! ${res.data.otp ? `(OTP: ${res.data.otp})` : ''}`);
+    } catch (err) {
+      setError(err.message || 'Something went wrong while resending OTP');
     } finally {
       setLoading(false);
     }
@@ -152,13 +171,23 @@ const RestaurantLogin = () => {
                 Verify & Continue
               </Button>
 
-              <button
-                type="button"
-                onClick={() => setStep('MOBILE')}
-                className="w-full text-center text-xs text-slate-500 hover:text-slate-800 mt-2 font-medium transition-all cursor-pointer"
-              >
-                Change Mobile Number
-              </button>
+              <div className="flex justify-between items-center mt-2">
+                <button
+                  type="button"
+                  onClick={() => setStep('MOBILE')}
+                  className="text-xs text-slate-500 hover:text-slate-800 font-medium transition-all cursor-pointer"
+                >
+                  Change Mobile Number
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={loading}
+                  className="text-xs text-[#d4af37] hover:text-[#c5a028] font-bold transition-all cursor-pointer"
+                >
+                  Resend OTP
+                </button>
+              </div>
             </form>
           )}
 

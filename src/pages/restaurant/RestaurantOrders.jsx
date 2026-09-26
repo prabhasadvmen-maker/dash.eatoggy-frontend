@@ -148,7 +148,7 @@ const RestaurantOrders = () => {
       case 'OUT_FOR_DELIVERY':
         return 'bg-purple-500/10 text-purple-400 border-purple-500/30';
       default:
-        return 'bg-slate-800 text-slate-300 border-slate-700';
+        return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
 
@@ -169,14 +169,14 @@ const RestaurantOrders = () => {
       sortable: false,
       render: (row) => (
         <div>
-          <p className="text-xs font-bold text-white flex items-center gap-1.5" data-testid="customer-name">
+          <p className="text-xs font-bold text-gray-900 flex items-center gap-1.5" data-testid="customer-name">
             <User size={12} className="text-[#d4af37]" /> {row.customerId?.fullName || 'Customer'}
           </p>
-          <div className="flex items-center gap-1.5 text-slate-400 text-[10px] mt-1">
+          <div className="flex items-center gap-1.5 text-gray-500 text-[10px] mt-1">
             <Phone size={10} className="text-[#d4af37]" />
             <span>{row.deliveryAddress?.mobile || row.customerId?.mobile}</span>
           </div>
-          <div className="flex items-start gap-1.5 text-slate-400 text-[10px] mt-0.5">
+          <div className="flex items-start gap-1.5 text-gray-500 text-[10px] mt-0.5">
             <MapPin size={10} className="text-[#d4af37] shrink-0 mt-0.5" />
             <span className="line-clamp-1 max-w-[200px]">{row.deliveryAddress?.addressLine1}, {row.deliveryAddress?.city}</span>
           </div>
@@ -189,15 +189,15 @@ const RestaurantOrders = () => {
       sortable: false,
       render: (row) => (
         <div className="max-w-[200px]">
-          <p className="text-[10px] font-bold text-slate-400 mb-1">{row.items.length} item(s)</p>
+          <p className="text-[10px] font-bold text-gray-500 mb-1">{row.items.length} item(s)</p>
           {row.items.slice(0, 2).map((item, idx) => (
-            <div key={idx} className="flex items-center gap-1 text-[10px] text-slate-300 truncate">
+            <div key={idx} className="flex items-center gap-1 text-[10px] text-gray-700 truncate">
               <span className="font-bold text-[#d4af37]">{item.quantity}x</span>
               <span className="truncate">{item.foodNameSnapshot}</span>
             </div>
           ))}
           {row.items.length > 2 && (
-            <p className="text-[9px] text-slate-500 mt-0.5">+{row.items.length - 2} more</p>
+            <p className="text-[9px] text-gray-400 mt-0.5">+{row.items.length - 2} more</p>
           )}
         </div>
       )
@@ -288,7 +288,7 @@ const RestaurantOrders = () => {
           )}
 
           {(row.orderStatus === 'DELIVERED' || row.orderStatus === 'REJECTED' || row.orderStatus === 'CANCELLED') && (
-            <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">
+            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">
               Completed
             </span>
           )}
@@ -317,19 +317,19 @@ const RestaurantOrders = () => {
   ];
 
   return (
-    <div className="p-6 space-y-6 text-slate-100 font-sans" data-testid="restaurant-orders-page">
+    <div className="p-6 space-y-6 text-gray-900 font-sans" data-testid="restaurant-orders-page">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2">
+          <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
             <ShoppingBag className="text-[#d4af37]" /> Restaurant Order Management
           </h1>
-          <p className="text-xs text-slate-400 mt-1">Live Customer Orders & Workflow</p>
+          <p className="text-xs text-gray-500 mt-1">Live Customer Orders & Workflow</p>
         </div>
 
         <button
           onClick={() => fetchOrders()}
-          className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs flex items-center gap-2 self-start cursor-pointer border border-slate-700 transition-colors shadow-sm"
+          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs flex items-center gap-2 self-start cursor-pointer border border-gray-200 transition-colors shadow-sm"
           data-testid="refresh-orders-btn"
         >
           <RotateCcw size={14} /> Refresh Orders
@@ -349,7 +349,7 @@ const RestaurantOrders = () => {
           DataTable is already used in superadmin (light). If restaurant is dark, we might need a wrapper or it will look light.
           Given standard DataTable is light, it's fine, we are migrating it.
       */}
-      <div className="bg-white rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
         <DataTable
           columns={columns}
           data={orders}
@@ -376,12 +376,12 @@ const RestaurantOrders = () => {
       {/* Rejection Modal */}
       {showRejectModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" data-testid="reject-modal">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
+          <div className="bg-white border border-gray-200 rounded-3xl p-6 max-w-md w-full shadow-md space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-200 pb-3">
+              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
                 <XCircle size={18} className="text-red-400" /> Reject Customer Order
               </h3>
-              <button onClick={() => setShowRejectModal(false)} className="text-slate-400 hover:text-white cursor-pointer">
+              <button onClick={() => setShowRejectModal(false)} className="text-gray-500 hover:text-gray-900 cursor-pointer">
                 <X size={18} />
               </button>
             </div>
@@ -394,14 +394,14 @@ const RestaurantOrders = () => {
 
             <form onSubmit={handleConfirmReject} className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-400 font-semibold mb-1">Mandatory Rejection Reason *</label>
+                <label className="block text-gray-500 font-semibold mb-1">Mandatory Rejection Reason *</label>
                 <textarea
                   required
                   rows={3}
                   placeholder="e.g. Item out of stock / Kitchen capacity full"
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
-                  className="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white focus:border-red-500 focus:outline-none transition-colors"
+                  className="w-full p-2.5 bg-gray-100 border border-gray-200 rounded-xl text-gray-900 focus:border-red-500 focus:outline-none transition-colors"
                   data-testid="rejection-reason-input"
                 />
               </div>
@@ -410,14 +410,14 @@ const RestaurantOrders = () => {
                 <button
                   type="button"
                   onClick={() => setShowRejectModal(false)}
-                  className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition-colors cursor-pointer"
+                  className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={rejecting}
-                  className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl disabled:opacity-50 flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                  className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-gray-900 font-bold rounded-xl disabled:opacity-50 flex items-center justify-center gap-1 transition-colors cursor-pointer"
                   data-testid="confirm-reject-btn"
                 >
                   {rejecting ? <Loader2 size={14} className="animate-spin" /> : 'Confirm Rejection'}

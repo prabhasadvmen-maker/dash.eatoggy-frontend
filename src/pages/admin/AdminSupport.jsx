@@ -47,7 +47,7 @@ const ActionDropdown = ({ row, onView }) => {
   );
 };
 
-const SuperAdminSupport = () => {
+const AdminSupport = () => {
   const {
     page, setPage,
     limit, setLimit,
@@ -90,9 +90,9 @@ const SuperAdminSupport = () => {
         }
       });
 
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/support/tickets?${queryParams.toString()}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admins/support/tickets?${queryParams.toString()}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('superadmin_token')}`
+          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
         }
       });
       const data = await response.json();
@@ -127,17 +127,17 @@ const SuperAdminSupport = () => {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/super-admin/support/tickets/${activeTicket._id}/messages`,
+        `${API_BASE_URL}/api/admins/support/tickets/${activeTicket._id}/messages`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('superadmin_token')}`
+            Authorization: `Bearer ${localStorage.getItem('admin_token')}`
           },
           body: JSON.stringify({
             message: replyMessage.trim(),
             isInternalNote,
-            senderName: 'SuperAdmin Support Agent'
+            senderName: 'Admin Support Agent'
           })
         }
       );
@@ -160,12 +160,12 @@ const SuperAdminSupport = () => {
   const handleUpdateStatus = async (ticketId, newStatus) => {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/super-admin/support/tickets/${ticketId}/status`,
+        `${API_BASE_URL}/api/admins/support/tickets/${ticketId}/status`,
         {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('superadmin_token')}`
+            Authorization: `Bearer ${localStorage.getItem('admin_token')}`
           },
           body: JSON.stringify({ status: newStatus })
         }
@@ -187,12 +187,12 @@ const SuperAdminSupport = () => {
   const handleUpdatePriority = async (ticketId, newPriority) => {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/super-admin/support/tickets/${ticketId}/priority`,
+        `${API_BASE_URL}/api/admins/support/tickets/${ticketId}/priority`,
         {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('superadmin_token')}`
+            Authorization: `Bearer ${localStorage.getItem('admin_token')}`
           },
           body: JSON.stringify({ priority: newPriority })
         }
@@ -580,4 +580,4 @@ const SuperAdminSupport = () => {
   );
 };
 
-export default SuperAdminSupport;
+export default AdminSupport;

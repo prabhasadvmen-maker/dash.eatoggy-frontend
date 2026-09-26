@@ -86,6 +86,7 @@ const Sidebar = ({ isOpen }) => {
               <NavLink
                 key={item.id}
                 to={item.path}
+                end={item.path === '/superadmin'}
                 title={!isOpen ? item.label : undefined}
                 className={({ isActive }) =>
                   `flex items-center gap-3 py-3 text-sm font-medium rounded-lg transition-colors duration-200 ${

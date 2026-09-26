@@ -37,7 +37,7 @@ const ActionDropdown = ({ row, onViewDetail }) => {
   );
 };
 
-const SuperAdminOrders = () => {
+const AdminBookings = () => {
   const {
     page, setPage,
     limit, setLimit,
@@ -79,9 +79,9 @@ const SuperAdminOrders = () => {
         }
       });
 
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/orders?${queryParams.toString()}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admins/bookings?${queryParams.toString()}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('superadmin_token')}`
+          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
         }
       });
       const data = await response.json();
@@ -113,9 +113,9 @@ const SuperAdminOrders = () => {
     setSelectedOrder(id);
     setLoadingDetail(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/orders/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admins/bookings/${id}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('superadmin_token')}`
+          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
         }
       });
       const data = await response.json();
@@ -191,7 +191,7 @@ const SuperAdminOrders = () => {
       sortable: false,
       className: 'px-2 py-3',
       headerClassName: 'px-2 py-3',
-      render: (row) => <div className="font-medium text-slate-700 truncate max-w-[120px] whitespace-nowrap" title={row.restaurantId?.name || 'Restaurant'}>{row.restaurantId?.name || 'Restaurant'}</div>
+      render: (row) => <div className="font-medium text-slate-700 truncate max-w-[120px] whitespace-nowrap" title={row.restaurantId?.restaurantName || 'Restaurant'}>{row.restaurantId?.restaurantName || 'Restaurant'}</div>
     },
     {
       key: 'orderType',
@@ -277,8 +277,8 @@ const SuperAdminOrders = () => {
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Master Orders Management</h1>
-          <p className="text-slate-400 mt-1">Live monitoring of all regular and subscription orders across EATOGGY</p>
+          <h1 className="text-3xl font-bold text-slate-800">Bookings Management</h1>
+          <p className="text-slate-400 mt-1">Live monitoring of all bookings and orders across EATOGGY</p>
         </div>
       </div>
 
@@ -341,12 +341,12 @@ const SuperAdminOrders = () => {
                     <p className="text-xs text-gray-400 font-bold mb-1 flex items-center gap-1"><UserSquare2 size={14}/> Customer</p>
                     <p className="font-bold text-slate-800">{orderDetail.customerId?.name || 'Customer'}</p>
                     <p className="text-xs text-slate-600">{orderDetail.customerId?.mobile}</p>
-                    <p className="text-xs text-slate-500 mt-2">{orderDetail.deliveryAddressSnapshot?.addressLine1}, {orderDetail.deliveryAddressSnapshot?.city}</p>
+                    <p className="text-xs text-slate-500 mt-2">{orderDetail.deliveryAddress?.addressLine1}, {orderDetail.deliveryAddress?.city}</p>
                   </div>
 
                   <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                     <p className="text-xs text-gray-400 font-bold mb-1 flex items-center gap-1"><Store size={14}/> Restaurant</p>
-                    <p className="font-bold text-slate-800">{orderDetail.restaurantId?.name || 'Restaurant'}</p>
+                    <p className="font-bold text-slate-800">{orderDetail.restaurantId?.restaurantName || 'Restaurant'}</p>
                     <p className="text-xs text-slate-600">{orderDetail.restaurantId?.mobile}</p>
                   </div>
                 </div>
@@ -355,10 +355,10 @@ const SuperAdminOrders = () => {
                 <div>
                   <h3 className="font-bold text-slate-800 text-sm mb-3">Item Breakdown</h3>
                   <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
-                    {orderDetail.itemsSnapshot?.map((item, idx) => (
+                    {orderDetail.items?.map((item, idx) => (
                       <div key={idx} className="p-3 bg-white flex justify-between items-center text-xs">
-                        <span className="font-bold text-slate-800">{item.name} × {item.quantity}</span>
-                        <span className="font-bold text-slate-700">₹{item.price * item.quantity}</span>
+                        <span className="font-bold text-slate-800">{item.foodNameSnapshot || item.name} × {item.quantity}</span>
+                        <span className="font-bold text-slate-700">₹{item.itemTotal || (item.unitPrice * item.quantity)}</span>
                       </div>
                     ))}
                   </div>
@@ -368,7 +368,7 @@ const SuperAdminOrders = () => {
                 <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2 text-xs">
                   <div className="flex justify-between text-gray-600">
                     <span>Subtotal</span>
-                    <span>₹{orderDetail.pricing?.itemTotal || 0}</span>
+                    <span>₹{orderDetail.pricing?.itemSubtotal || 0}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Packaging Fee</span>
@@ -396,4 +396,4 @@ const SuperAdminOrders = () => {
   );
 };
 
-export default SuperAdminOrders;
+export default AdminBookings;

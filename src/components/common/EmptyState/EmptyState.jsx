@@ -14,7 +14,7 @@ const EmptyState = ({
         <Icon className="w-6 h-6" />
       </div>
       {title && <h3 className="text-sm font-bold text-slate-800">{title}</h3>}
-      {description && <p className="text-xs text-slate-500 max-w-sm">{description}</p>}
+      {description && <div className="text-xs text-slate-500 max-w-sm">{description}</div>}
       {action && <div className="pt-2">{action}</div>}
     </div>
   );

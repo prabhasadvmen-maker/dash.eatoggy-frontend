@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Plus, Edit, AlertCircle, X, Save,
-  ImageIcon, Send, Trash2, Power
+  ImageIcon, Send, Trash2, Power, Settings
 } from 'lucide-react';
 import { 
   getMenuItems, createMenuItem, updateMenuItem, 
@@ -28,6 +28,138 @@ const fetchActiveSubcategories = async (categoryId) => {
   });
   const data = await res.json();
   return data.data || [];
+};
+
+const ImageCell = ({ src, alt, foodType }) => {
+  const [error, setError] = useState(false);
+  return (
+    <div className="flex items-center gap-4 max-w-[200px]">
+      {src && !error ? (
+        <img 
+          src={src} 
+          alt={alt} 
+          onError={() => setError(true)}
+          className="w-12 h-12 rounded-xl object-cover bg-gray-100 border border-gray-200 shrink-0" 
+        />
+      ) : (
+        <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center border border-gray-200 shrink-0">
+          <ImageIcon className="text-gray-400" size={20} />
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="font-bold text-slate-800 text-sm truncate" title={alt}>{alt}</p>
+        <p className="text-[10px] font-bold text-gray-500 flex items-center gap-1 mt-0.5">
+          <span className={`w-2 h-2 rounded-full shrink-0 ${foodType === 'VEG' ? 'bg-green-500' : 'bg-red-500'}`}></span>
+          {foodType}
+        </p>
+      </div>
+    </div>
+  );
+};
+
+const ActionsDropdown = ({ row, openModal, handleAction }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const buttonRef = useRef(null);
+  const menuRef = useRef(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        (buttonRef.current && buttonRef.current.contains(event.target)) ||
+        (menuRef.current && menuRef.current.contains(event.target))
+      ) {
+        return;
+      }
+      setIsOpen(false);
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('scroll', () => setIsOpen(false), true);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('scroll', () => setIsOpen(false), true);
+    }
+  }, [isOpen]);
+
+  const toggleDropdown = (e) => {
+    e.stopPropagation();
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPos({ 
+        top: rect.bottom, 
+        right: window.innerWidth - rect.right 
+      });
+    }
+    setIsOpen(!isOpen);
+  };
+
+  return (
+    <>
+      <button 
+        ref={buttonRef}
+        onClick={toggleDropdown}
+        className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+        title="Actions"
+      >
+        <Settings size={18} />
+      </button>
+      
+      {isOpen && (
+        <div 
+          ref={menuRef}
+          className="fixed mt-1 w-44 bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.15)] border border-gray-100 z-[9999] py-1.5"
+          style={{ top: dropdownPos.top, right: dropdownPos.right }}
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); setIsOpen(false); openModal(row, 'view'); }}
+            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-slate-50 flex items-center gap-3 cursor-pointer"
+          >
+            <AlertCircle size={16} className="text-blue-500" /> 
+            View Details
+          </button>
+
+          {/* Always show Edit and Delete buttons to avoid confusion */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setIsOpen(false); openModal(row, 'edit'); }}
+            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-slate-50 flex items-center gap-3 cursor-pointer"
+          >
+            <Edit size={16} className="text-green-500" /> 
+            Edit Info
+          </button>
+
+          {(row.status === 'DRAFT' || row.status === 'REJECTED') && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsOpen(false); handleAction('submit', row._id); }}
+              className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-slate-50 flex items-center gap-3 cursor-pointer"
+            >
+              <Send size={16} className="text-amber-500" /> 
+              {row.status === 'REJECTED' ? 'Resubmit' : 'Submit for Review'}
+            </button>
+          )}
+
+          {row.status === 'APPROVED' && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsOpen(false); handleAction('toggleAvailability', row._id, !row.availability); }}
+              className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-slate-50 flex items-center gap-3 cursor-pointer"
+            >
+              <Power size={16} className="text-orange-500" /> 
+              {row.availability ? 'Deactivate' : 'Activate'}
+            </button>
+          )}
+
+          <button
+            onClick={(e) => { e.stopPropagation(); setIsOpen(false); handleAction('delete', row._id); }}
+            className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 flex items-center gap-3 cursor-pointer"
+          >
+            <Trash2 size={16} className="text-red-500" /> 
+            Delete
+          </button>
+        </div>
+      )}
+    </>
+  );
 };
 
 const StatusBadge = ({ status, isAvailable }) => {
@@ -73,6 +205,7 @@ const MenuManagement = () => {
   const [error, setError] = useState(null);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('edit'); // 'view' or 'edit' or 'create'
   const [editingItem, setEditingItem] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -149,7 +282,7 @@ const MenuManagement = () => {
   }, [loadInitialData]);
 
   const handleCategoryChange = async (categoryId) => {
-    setFormData({ ...formData, categoryId, subcategoryId: '' });
+    setFormData(prev => ({ ...prev, categoryId, subcategoryId: '' }));
     if (categoryId) {
       try {
         const subCats = await fetchActiveSubcategories(categoryId);
@@ -162,9 +295,24 @@ const MenuManagement = () => {
     }
   };
 
-  const openModal = async (item = null) => {
+  const openModal = async (item = null, mode = 'edit') => {
+    setModalMode(mode);
     if (item) {
       setEditingItem(item);
+      
+      // Fetch subcategories if we have a category, but don't reset subcategoryId
+      if (item.categoryId?._id) {
+        try {
+          const subCats = await fetchActiveSubcategories(item.categoryId._id);
+          setSubcategories(subCats || []);
+        } catch (err) {
+          console.error('Failed to load subcategories');
+          setSubcategories([]);
+        }
+      } else {
+        setSubcategories([]);
+      }
+
       setFormData({
         categoryId: item.categoryId?._id || '',
         subcategoryId: item.subcategoryId?._id || '',
@@ -173,15 +321,12 @@ const MenuManagement = () => {
         price: item.price || '',
         foodType: item.foodType || 'VEG',
         preparationTime: item.preparationTime || '',
-        availability: item.availability,
+        availability: item.availability !== undefined ? item.availability : true,
       });
       setImagePreview(item.image);
-      if (item.categoryId?._id) {
-        await handleCategoryChange(item.categoryId._id);
-        setFormData(prev => ({ ...prev, subcategoryId: item.subcategoryId?._id || '' }));
-      }
     } else {
       setEditingItem(null);
+      setSubcategories([]);
       setFormData({
         categoryId: '',
         subcategoryId: '',
@@ -193,7 +338,6 @@ const MenuManagement = () => {
         availability: true,
       });
       setImagePreview(null);
-      setSubcategories([]);
     }
     setImageFile(null);
     setIsModalOpen(true);
@@ -262,26 +406,21 @@ const MenuManagement = () => {
 
   const columns = [
     {
+      key: 'srNo',
+      label: 'Sr No.',
+      sortable: false,
+      render: (row, index) => (
+        <span className="font-bold text-slate-500 text-sm">
+          {(page - 1) * limit + index + 1}
+        </span>
+      )
+    },
+    {
       key: 'name',
       label: 'Item',
       sortable: true,
       render: (row) => (
-        <div className="flex items-center gap-4">
-          {row.image ? (
-            <img src={row.image} alt={row.name} className="w-12 h-12 rounded-xl object-cover bg-gray-100 border border-gray-200" />
-          ) : (
-            <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center border border-gray-200">
-              <ImageIcon className="text-gray-400" size={20} />
-            </div>
-          )}
-          <div>
-            <p className="font-bold text-slate-800 text-sm">{row.name}</p>
-            <p className="text-[10px] font-bold text-gray-500 flex items-center gap-1 mt-0.5">
-              <span className={`w-2 h-2 rounded-full ${row.foodType === 'VEG' ? 'bg-green-500' : 'bg-red-500'}`}></span>
-              {row.foodType}
-            </p>
-          </div>
-        </div>
+        <ImageCell src={row.image} alt={row.name} foodType={row.foodType} />
       )
     },
     {
@@ -323,56 +462,11 @@ const MenuManagement = () => {
     },
     {
       key: 'actions',
-      label: 'Actions',
+      label: 'ACTIONS',
       align: 'right',
       render: (row) => (
-        <div className="flex items-center justify-end gap-1.5">
-          {/* Edit Action */}
-          {row.status !== 'PENDING_REVIEW' && (
-            <button
-              onClick={() => openModal(row)}
-              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-              title={row.status === 'REJECTED' ? "Edit & Correct Item" : "Edit"}
-            >
-              <Edit size={16} />
-            </button>
-          )}
-
-          {/* Submit / Resubmit Action */}
-          {(row.status === 'DRAFT' || row.status === 'REJECTED') && (
-            <button
-              onClick={() => handleAction('submit', row._id)}
-              className="p-1.5 text-[#d4af37] hover:bg-[#fbf7ea] rounded-lg transition-colors cursor-pointer"
-              title={row.status === 'REJECTED' ? "Resubmit for Review" : "Submit for Verification"}
-              data-testid="resubmit-btn"
-            >
-              <Send size={16} />
-            </button>
-          )}
-
-          {/* Availability Toggle */}
-          {row.status === 'APPROVED' && (
-            <button
-              onClick={() => handleAction('toggleAvailability', row._id, !row.availability)}
-              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                row.availability ? 'text-emerald-600 hover:bg-emerald-50' : 'text-gray-400 hover:bg-gray-100'
-              }`}
-              title={row.availability ? "Mark Unavailable" : "Mark Available"}
-            >
-              <Power size={16} />
-            </button>
-          )}
-
-          {/* Delete Draft */}
-          {row.status === 'DRAFT' && (
-            <button
-              onClick={() => handleAction('delete', row._id)}
-              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-              title="Delete Draft"
-            >
-              <Trash2 size={16} />
-            </button>
-          )}
+        <div className="flex items-center justify-end">
+          <ActionsDropdown row={row} openModal={openModal} handleAction={handleAction} />
         </div>
       )
     }
@@ -463,18 +557,18 @@ const MenuManagement = () => {
 
       {/* Add/Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm overflow-y-auto animate-fadeIn">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden my-8">
-            <div className="flex items-center justify-between p-6 border-b border-gray-100">
-              <h2 className="text-xl font-bold text-gray-900">
-                {editingItem ? 'Edit Menu Item' : 'Add Menu Item'}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 animate-fadeIn">
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-8 pb-5 border-b border-gray-100">
+              <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                {modalMode === 'view' ? 'View Menu Item' : (editingItem ? 'Edit Menu Item' : 'Add Menu Item')}
               </h2>
               <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 cursor-pointer">
                 <X size={20} />
               </button>
             </div>
 
-            <form className="p-6">
+            <form className="p-8 pt-5 space-y-5 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
               
               {/* If Rejected, show reason prominently */}
               {editingItem?.status === 'REJECTED' && (
@@ -500,24 +594,26 @@ const MenuManagement = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div className="col-span-1 md:col-span-2">
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">Item Name *</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Item Name *</label>
                   <input
                     type="text"
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#d4af37] outline-none transition-all"
+                    disabled={modalMode === 'view'}
+                    className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#d4af37]/30 focus:border-[#d4af37] transition-all"
                     placeholder="e.g. Special Veg Thali"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">Category *</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Category *</label>
                   <select
                     required
                     value={formData.categoryId}
                     onChange={(e) => handleCategoryChange(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#d4af37] outline-none transition-all"
+                    disabled={modalMode === 'view'}
+                    className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#d4af37]/30 focus:border-[#d4af37] transition-all"
                   >
                     <option value="">Select Category</option>
                     {categories.map(c => (
@@ -527,12 +623,12 @@ const MenuManagement = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">Subcategory *</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Subcategory *</label>
                   <select
                     required
                     value={formData.subcategoryId}
                     onChange={(e) => setFormData({ ...formData, subcategoryId: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#d4af37] outline-none transition-all disabled:opacity-50"
+                    className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#d4af37]/30 focus:border-[#d4af37] transition-all disabled:opacity-50"
                     disabled={!formData.categoryId}
                   >
                     <option value="">Select Subcategory</option>
@@ -543,20 +639,21 @@ const MenuManagement = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">Price (₹) *</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Price (₹) *</label>
                   <input
                     type="number"
                     min="0"
                     required
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#d4af37] outline-none transition-all"
+                    disabled={modalMode === 'view'}
+                    className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#d4af37]/30 focus:border-[#d4af37] transition-all"
                     placeholder="0.00"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">Food Type</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Food Type</label>
                   <div className="flex gap-6 pt-2">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -588,18 +685,19 @@ const MenuManagement = () => {
                 </div>
 
                 <div className="col-span-1 md:col-span-2">
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">Description</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Description</label>
                   <textarea
                     rows="3"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#d4af37] outline-none transition-all resize-none"
+                    disabled={modalMode === 'view'}
+                    className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#d4af37]/30 focus:border-[#d4af37] transition-all resize-none"
                     placeholder="Brief description of the item ingredients and taste..."
                   ></textarea>
                 </div>
 
                 <div className="col-span-1 md:col-span-2">
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">Item Image</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Item Image</label>
                   <div className="flex items-start gap-6">
                     {imagePreview ? (
                       <div className="relative w-28 h-28 rounded-xl overflow-hidden border border-gray-200">
@@ -622,6 +720,7 @@ const MenuManagement = () => {
                         type="file"
                         accept="image/jpeg, image/png, image/webp"
                         onChange={handleImageChange}
+                        disabled={modalMode === 'view'}
                         className="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#fbf7ea] file:text-[#b5952f] hover:file:bg-[#f5eecb] cursor-pointer transition-colors"
                       />
                       <p className="mt-2 text-xs font-medium text-gray-500">
@@ -638,6 +737,7 @@ const MenuManagement = () => {
                       id="availability-toggle"
                       checked={formData.availability}
                       onChange={(e) => setFormData({ ...formData, availability: e.target.checked })}
+                      disabled={modalMode === 'view'}
                       className="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer transition-transform duration-200 ease-in-out"
                       style={{ transform: formData.availability ? 'translateX(100%)' : 'translateX(0)', borderColor: formData.availability ? '#10b981' : '#e5e7eb', right: '0' }}
                     />
@@ -652,7 +752,7 @@ const MenuManagement = () => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-100">
+              <div className="flex items-center justify-end gap-3 pt-6 mt-6 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={closeModal}
@@ -661,8 +761,7 @@ const MenuManagement = () => {
                   Cancel
                 </button>
                 
-                {/* Draft button - only if new, draft, or rejected */}
-                {(!editingItem || editingItem.status === 'DRAFT' || editingItem.status === 'REJECTED') && (
+                {modalMode !== 'view' && (!editingItem || editingItem.status === 'DRAFT' || editingItem.status === 'REJECTED') && (
                   <button
                     type="button"
                     disabled={submitting}
@@ -674,18 +773,20 @@ const MenuManagement = () => {
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  disabled={submitting}
-                  onClick={(e) => handleSubmit(e, false)}
-                  className="px-6 py-2.5 text-xs font-bold text-white bg-[#d4af37] rounded-xl hover:bg-[#b5952f] transition-colors shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  {submitting 
-                    ? 'Saving...' 
-                    : (editingItem?.status === 'REJECTED' 
-                      ? 'Save & Resubmit for Review' 
-                      : (editingItem?.status === 'APPROVED' ? 'Submit Updates' : 'Submit for Review'))}
-                </button>
+                {modalMode !== 'view' && (
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={(e) => handleSubmit(e, false)}
+                    className="px-8 py-3 text-sm font-black text-[#d4af37] bg-[#1e1e2e] rounded-xl hover:bg-black transition-colors shadow-lg shadow-[#1e1e2e]/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {submitting 
+                      ? 'Saving...' 
+                      : (editingItem?.status === 'REJECTED' 
+                        ? 'Save & Resubmit for Review' 
+                        : (editingItem?.status === 'APPROVED' ? 'Submit Updates' : 'Submit for Review'))}
+                  </button>
+                )}
               </div>
             </form>
           </div>

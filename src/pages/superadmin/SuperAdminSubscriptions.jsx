@@ -1,8 +1,50 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { CreditCard, ShieldAlert, Store, UserSquare2, Ban, Eye } from 'lucide-react';
+import { CreditCard, ShieldAlert, Store, UserSquare2, Ban, Eye, Settings, X } from 'lucide-react';
 import API_BASE_URL from '../../services/apiService';
 import DataTable from '../../components/common/Table/DataTable';
 import { useDataTableSync } from '../../hooks/useDataTableSync';
+const ActionDropdown = ({ row, onViewDetail, onCancelSubscription }) => {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const handleClick = () => setOpen(false);
+    if (open) window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, [open]);
+
+  return (
+    <div className="relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="p-1.5 bg-gray-100 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+        title="Settings"
+      >
+        <Settings size={16} />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-2 w-36 bg-white rounded-xl shadow-lg border border-gray-100 z-10 py-1 overflow-hidden">
+          <button
+            onClick={() => { setOpen(false); onViewDetail(row); }}
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors cursor-pointer"
+          >
+            <Eye size={14} className="text-gray-500" />
+            View Details
+          </button>
+          {row.status === 'ACTIVE' && (
+            <button
+              onClick={() => { setOpen(false); onCancelSubscription(row._id); }}
+              className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              <Ban size={14} className="text-red-500" />
+              Cancel
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const SuperAdminSubscriptions = () => {
   const {
@@ -119,7 +161,7 @@ const SuperAdminSubscriptions = () => {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    return new Date(dateString).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
   };
 
   const getStatusBadge = (status) => {
@@ -139,19 +181,35 @@ const SuperAdminSubscriptions = () => {
 
   const columns = [
     {
+      key: 'srNo',
+      label: 'Sr. No.',
+      align: 'center',
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
+      render: (_, rowIndex) => (
+        <span className="text-gray-500 font-medium text-sm">
+          {((page - 1) * limit) + rowIndex + 1}
+        </span>
+      )
+    },
+    {
       key: 'subscriptionNumber',
       label: 'Subscription #',
       sortable: true,
-      render: (row) => <span className="font-bold text-slate-800">{row.subscriptionNumber}</span>
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
+      render: (row) => <span className="font-bold text-slate-800 text-xs whitespace-nowrap truncate max-w-[120px] inline-block" title={row.subscriptionNumber}>{row.subscriptionNumber}</span>
     },
     {
       key: 'customerId',
       label: 'Customer',
       sortable: false,
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
       render: (row) => (
-        <div>
-          <div className="font-medium text-slate-700">{row.customerId?.name || 'Customer'}</div>
-          <div className="text-xs text-slate-400">{row.customerId?.mobile}</div>
+        <div className="whitespace-nowrap">
+          <div className="font-medium text-slate-700 truncate max-w-[100px]" title={row.customerId?.name || 'Customer'}>{row.customerId?.name || 'Customer'}</div>
+          <div className="text-[10px] text-slate-400 font-mono mt-0.5">{row.customerId?.mobile}</div>
         </div>
       )
     },
@@ -159,10 +217,12 @@ const SuperAdminSubscriptions = () => {
       key: 'planId',
       label: 'Restaurant & Plan',
       sortable: false,
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
       render: (row) => (
-        <div>
-          <div className="font-medium text-slate-700">{row.planSnapshot?.name || 'Tiffin Plan'}</div>
-          <div className="text-xs text-slate-400">{row.restaurantId?.name}</div>
+        <div className="whitespace-nowrap">
+          <div className="font-medium text-slate-700 truncate max-w-[120px]" title={row.planSnapshot?.name || 'Tiffin Plan'}>{row.planSnapshot?.name || 'Tiffin Plan'}</div>
+          <div className="text-[10px] text-slate-400 truncate max-w-[120px]" title={row.restaurantId?.name}>{row.restaurantId?.name}</div>
         </div>
       )
     },
@@ -171,13 +231,17 @@ const SuperAdminSubscriptions = () => {
       label: 'Completed',
       sortable: false, // Could be sortable if we allow sorting by virtual or numeric
       align: 'center',
-      render: (row) => <span className="font-bold text-slate-700">{row.completedOccurrencesCount} / {row.totalOccurrences}</span>
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
+      render: (row) => <span className="font-bold text-slate-700 text-xs whitespace-nowrap">{row.completedOccurrencesCount} / {row.totalOccurrences}</span>
     },
     {
       key: 'status',
       label: 'Status',
       sortable: true,
       align: 'center',
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
       render: (row) => getStatusBadge(row.status)
     },
     {
@@ -185,36 +249,30 @@ const SuperAdminSubscriptions = () => {
       label: 'Total Price',
       sortable: true,
       align: 'center',
-      render: (row) => <span className="font-bold text-slate-800">₹{row.pricing?.grandTotal || 0}</span>
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
+      render: (row) => <span className="font-bold text-slate-800 whitespace-nowrap text-xs">₹{row.pricing?.grandTotal || 0}</span>
     },
     {
       key: 'startDate',
       label: 'Start Date',
       sortable: true,
-      render: (row) => <span className="text-slate-400 font-medium whitespace-nowrap">{formatDate(row.startDate)}</span>
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
+      render: (row) => <span className="text-slate-500 font-medium whitespace-nowrap text-[11px]">{formatDate(row.startDate)}</span>
     },
     {
       key: 'actions',
       label: 'Actions',
       align: 'right',
+      className: 'px-2 py-3',
+      headerClassName: 'px-2 py-3',
       render: (row) => (
-        <div className="flex items-center justify-end gap-2">
-          <button
-            onClick={() => openSubDetail(row._id)}
-            className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
-          >
-            <Eye size={14} /> View
-          </button>
-
-          {row.status === 'ACTIVE' && (
-            <button
-              onClick={() => handleCancelSubscription(row._id)}
-              className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
-            >
-              <Ban size={14} /> Cancel
-            </button>
-          )}
-        </div>
+        <ActionDropdown
+          row={row}
+          onViewDetail={(row) => openSubDetail(row._id)}
+          onCancelSubscription={(id) => handleCancelSubscription(id)}
+        />
       )
     }
   ];
