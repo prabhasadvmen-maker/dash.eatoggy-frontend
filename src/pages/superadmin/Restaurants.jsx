@@ -154,7 +154,7 @@ const Restaurants = () => {
         }
       });
 
-      const res = await fetch(`${API_BASE_URL}/api/admins/restaurants?${params.toString()}`, {
+      const res = await fetch(`${API_BASE_URL}/api/super-admin/restaurants?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -216,8 +216,8 @@ const Restaurants = () => {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('superadmin_token');
-      const res = await fetch(`${API_BASE_URL}/api/admins/restaurants/${id}/approve`, {
-        method: 'PUT',
+      const res = await fetch(`${API_BASE_URL}/api/super-admin/restaurants/${id}/approve`, {
+        method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -239,8 +239,8 @@ const Restaurants = () => {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('superadmin_token');
-      const res = await fetch(`${API_BASE_URL}/api/admins/restaurants/${id}/reject`, {
-        method: 'PUT',
+      const res = await fetch(`${API_BASE_URL}/api/super-admin/restaurants/${id}/reject`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ reason: rejectReason })
       });
@@ -270,7 +270,7 @@ const Restaurants = () => {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('superadmin_token');
-      const res = await fetch(`${API_BASE_URL}/api/admins/restaurants/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/super-admin/restaurants/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -291,20 +291,27 @@ const Restaurants = () => {
     setConfirmModal({ open: false, id: null });
   };
 
-  const handleToggleEnable = async (id) => {
+  const handleToggleEnable = async (id, status) => {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('superadmin_token');
-      const res = await fetch(`${API_BASE_URL}/api/admins/restaurants/${id}/toggle-status`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const isApproved = status === 'APPROVED';
+      const endpoint = isApproved ? 'suspend' : 'unsuspend';
+      const options = {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+      };
+      if (isApproved) {
+        options.body = JSON.stringify({ reason: 'Suspended by admin' });
+      }
+
+      const res = await fetch(`${API_BASE_URL}/api/super-admin/restaurants/${id}/${endpoint}`, options);
       const data = await res.json();
       if (res.ok) {
         fetchRestaurants();
         setActiveDropdownId(null);
         if (selectedRestaurant && selectedRestaurant._id === id) {
-          setSelectedRestaurant(data.restaurant);
+          setSelectedRestaurant(data.data?.restaurant || data.restaurant);
         }
       } else {
         alert(data.message || 'Failed to update restaurant status');
@@ -444,7 +451,7 @@ const Restaurants = () => {
               </button>
 
               <button
-                onClick={() => handleToggleEnable(row._id)}
+                onClick={() => handleToggleEnable(row._id, row.status)}
                 className={`w-full text-left px-4 py-2 text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer ${
                   row.status === 'APPROVED' ? 'text-purple-600 hover:bg-purple-50' : 'text-emerald-600 hover:bg-emerald-50'
                 }`}

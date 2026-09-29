@@ -60,7 +60,7 @@ const Admins = () => {
         }
       });
 
-      const response = await fetch(`${API_BASE_URL}/api/admins?${queryParams.toString()}`, {
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/admins?${queryParams.toString()}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('superadmin_token')}`
         }
@@ -134,8 +134,8 @@ const Admins = () => {
     try {
       const isEdit = modalState.type === 'edit';
       const url = isEdit 
-        ? `${API_BASE_URL}/api/admins/${modalState.adminId}` 
-        : `${API_BASE_URL}/api/admins`;
+        ? `${API_BASE_URL}/api/super-admin/admins/${modalState.adminId}` 
+        : `${API_BASE_URL}/api/super-admin/admins`;
       
       const payload = { ...formData };
       // If editing and password is empty, don't send it so we don't overwrite
@@ -178,7 +178,7 @@ const Admins = () => {
     if (!id) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admins/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/admins/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('superadmin_token')}`
@@ -203,11 +203,13 @@ const Admins = () => {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admins/${id}/toggle-status`, {
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/admins/${id}`, {
         method: 'PUT',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('superadmin_token')}`
-        }
+        },
+        body: JSON.stringify({ isActive: !currentStatus })
       });
 
       if (response.ok) {
@@ -240,8 +242,16 @@ const Admins = () => {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    if (!dateString) return 'Not yet';
+    const date = new Date(dateString);
+    return date.toLocaleString('en-GB', { 
+      day: '2-digit', 
+      month: 'short', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
   };
 
   const columns = [

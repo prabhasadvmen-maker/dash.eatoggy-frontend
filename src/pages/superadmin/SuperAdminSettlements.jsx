@@ -158,8 +158,8 @@ const SuperAdminSettlements = () => {
     try {
       const token = localStorage.getItem('superadmin_token');
       const [restRes, delRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/admins/restaurants`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${API_BASE_URL}/api/admins/delivery-partners`, { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`${API_BASE_URL}/api/super-admin/restaurants`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_BASE_URL}/api/super-admin/delivery-partners`, { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
 
       if (restRes.ok) {
@@ -258,7 +258,7 @@ const SuperAdminSettlements = () => {
     setProcessing(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/settlements/${payoutModal.settlement._id}/paid`, {
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/settlements/${payoutModal.settlement._id}/mark-paid`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -289,7 +289,7 @@ const SuperAdminSettlements = () => {
     setProcessing(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/settlements/${failModal.settlement._id}/failed`, {
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/settlements/${failModal.settlement._id}/mark-failed`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

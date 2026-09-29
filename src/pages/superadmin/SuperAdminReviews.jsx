@@ -72,25 +72,34 @@ const SuperAdminReviews = () => {
     fetchReviews();
   }, [fetchReviews]);
 
-  const handleUpdateStatus = async (reviewId, newStatus) => {
+  const handleHide = async (reviewId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/reviews/${reviewId}/status`, {
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/reviews/${reviewId}/hide`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('superadmin_token')}`
-        },
-        body: JSON.stringify({ status: newStatus })
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('superadmin_token')}` }
       });
-      const data = await response.json();
-      if (response.ok) {
-        setReviews(reviews.map(r => r._id === reviewId ? { ...r, status: newStatus } : r));
-      } else {
-        alert(data.message || 'Failed to update review status');
-      }
-    } catch (err) {
-      alert('Network error while updating review status');
-    }
+      if (response.ok) setReviews(reviews.map(r => r._id === reviewId ? { ...r, status: 'HIDDEN' } : r));
+    } catch (err) { alert('Network error'); }
+  };
+
+  const handlePublish = async (reviewId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/reviews/${reviewId}/publish`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('superadmin_token')}` }
+      });
+      if (response.ok) setReviews(reviews.map(r => r._id === reviewId ? { ...r, status: 'PUBLISHED' } : r));
+    } catch (err) { alert('Network error'); }
+  };
+
+  const handleFlag = async (reviewId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/reviews/${reviewId}/flag`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('superadmin_token')}` }
+      });
+      if (response.ok) setReviews(reviews.map(r => r._id === reviewId ? { ...r, status: 'FLAGGED' } : r));
+    } catch (err) { alert('Network error'); }
   };
 
   const formatDate = (dateString) => {
@@ -149,7 +158,7 @@ const SuperAdminReviews = () => {
         <div className="flex justify-center gap-2">
           {row.status !== 'PUBLISHED' && (
             <button
-              onClick={() => handleUpdateStatus(row._id, 'PUBLISHED')}
+              onClick={() => handlePublish(row._id)}
               title="Publish"
               className="p-1.5 bg-emerald-100 text-emerald-800 rounded-lg hover:bg-emerald-200 transition-colors cursor-pointer"
             >
@@ -158,7 +167,7 @@ const SuperAdminReviews = () => {
           )}
           {row.status !== 'HIDDEN' && (
             <button
-              onClick={() => handleUpdateStatus(row._id, 'HIDDEN')}
+              onClick={() => handleHide(row._id)}
               title="Hide Review"
               className="p-1.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors cursor-pointer"
             >
@@ -167,7 +176,7 @@ const SuperAdminReviews = () => {
           )}
           {row.status !== 'FLAGGED' && (
             <button
-              onClick={() => handleUpdateStatus(row._id, 'FLAGGED')}
+              onClick={() => handleFlag(row._id)}
               title="Flag Review"
               className="p-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors cursor-pointer"
             >
