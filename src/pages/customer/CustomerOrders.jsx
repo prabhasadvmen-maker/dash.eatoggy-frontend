@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCustomerOrdersAPI } from '../../services/customer/orderService.js';
+import { getCustomerOrdersAPI, cancelOrderAPI } from '../../services/customer/orderService.js';
+import OrderCancellation from '../../components/customer/OrderCancellation.jsx';
 
 import {
   ShoppingBag,
@@ -19,27 +20,47 @@ const CustomerOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  const [cancellingOrder, setCancellingOrder] = useState(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await getCustomerOrdersAPI();
+      if (res.ok && res.data.success) {
+        setOrders(res.data.data);
+      } else {
+        setError(res.data.message || 'Failed to fetch your orders');
+      }
+    } catch (err) {
+      setError('Error loading orders history');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const res = await getCustomerOrdersAPI();
-        if (res.ok && res.data.success) {
-          setOrders(res.data.data);
-        } else {
-          setError(res.data.message || 'Failed to fetch your orders');
-        }
-      } catch (err) {
-        setError('Error loading orders history');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchOrders();
   }, []);
+
+  const handleCancelOrder = async ({ orderId, reason }) => {
+    try {
+      setIsCancelling(true);
+      const res = await cancelOrderAPI(orderId, reason); // Assume cancelOrderAPI exists in orderService
+      if (res.ok || res.data?.success) {
+        setCancellingOrder(null);
+        fetchOrders(); // Refresh orders
+      } else {
+        alert(res.data?.message || 'Failed to cancel order');
+      }
+    } catch (error) {
+      alert('Error cancelling order');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   const getStatusBadgeClass = (status) => {
     switch (status) {
@@ -178,6 +199,17 @@ const CustomerOrders = () => {
                     </div>
 
                     <div className="text-right flex items-center gap-2">
+                      {(ord.orderStatus === 'PLACED' || ord.orderStatus === 'ACCEPTED') && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCancellingOrder(ord);
+                          }}
+                          className="mr-2 text-xs text-red-600 hover:text-red-800 border border-red-200 px-2 py-1 rounded"
+                        >
+                          Cancel
+                        </button>
+                      )}
                       <div>
                         <p className="text-[10px] text-gray-500 uppercase font-bold">Total</p>
                         <p className="font-black text-[#d4af37] text-sm" data-testid="order-total">
@@ -194,7 +226,14 @@ const CustomerOrders = () => {
         )}
       </main>
 
-      
+      {cancellingOrder && (
+        <OrderCancellation
+          order={cancellingOrder}
+          isLoading={isCancelling}
+          onClose={() => setCancellingOrder(null)}
+          onCancel={handleCancelOrder}
+        />
+      )}
     </div>
   );
 };

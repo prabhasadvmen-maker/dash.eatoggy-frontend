@@ -19,12 +19,14 @@ import {
   Settings,
   UserCircle,
   HelpCircle,
-  ImageIcon
+  ImageIcon,
+  MapPin
 } from 'lucide-react';
 
 const mainNavItems = [
   { id: 1, label: 'Dashboard', path: '/superadmin', icon: LayoutDashboard },
   { id: 2, label: 'Admins & Roles', path: '/superadmin/admins-roles', icon: Users },
+  { id: 2.5, label: 'City & Zone', path: '/superadmin/cities', icon: MapPin },
   { id: 3, label: 'Customers', path: '/superadmin/customers', icon: UserSquare2 },
   { id: 4, label: 'Restaurants / Kitchens', path: '/superadmin/restaurants', icon: UtensilsCrossed },
   { id: 5, label: 'Delivery Partners', path: '/superadmin/delivery-partners', icon: Bike },

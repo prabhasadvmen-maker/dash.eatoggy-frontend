@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getCustomerOrderByIdAPI } from '../../services/customer/orderService.js';
+import { getCustomerOrderByIdAPI, cancelOrderAPI } from '../../services/customer/orderService.js';
 import { getCustomerOrderTracking } from '../../services/delivery/deliveryOrderService.js';
+import OrderCancellation from '../../components/customer/OrderCancellation.jsx';
 import { subscribeToOrderTracking, unsubscribeFromOrderTracking } from '../../services/socketService.js';
 
 import {
@@ -40,6 +41,27 @@ const CustomerOrderDetail = () => {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [hasReviewed, setHasReviewed] = useState(false);
   const [reviewData, setReviewData] = useState(null);
+
+  // Cancellation State
+  const [cancellingOrder, setCancellingOrder] = useState(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  const handleCancelOrder = async ({ orderId, reason }) => {
+    try {
+      setIsCancelling(true);
+      const res = await cancelOrderAPI(orderId, reason);
+      if (res.ok || res.data?.success) {
+        setCancellingOrder(null);
+        fetchOrderAndTracking();
+      } else {
+        alert(res.data?.message || 'Failed to cancel order');
+      }
+    } catch (error) {
+      alert('Error cancelling order');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   const handleSubmitReview = async (e) => {
     e.preventDefault();
@@ -206,9 +228,19 @@ const CustomerOrderDetail = () => {
             </div>
           </div>
 
-          <span className="px-3 py-1 bg-[#d4af37]/10 text-[#d4af37] border border-[#d4af37]/30 text-xs font-bold rounded-xl uppercase" data-testid="order-status-badge">
-            {orderStatus}
-          </span>
+          <div className="flex items-center gap-2">
+            {(orderStatus === 'PLACED' || orderStatus === 'ACCEPTED') && (
+              <button
+                onClick={() => setCancellingOrder(order)}
+                className="px-3 py-1 bg-red-100 text-red-600 border border-red-300 text-xs font-bold rounded-xl uppercase hover:bg-red-200 transition-colors"
+              >
+                Cancel Order
+              </button>
+            )}
+            <span className="px-3 py-1 bg-[#d4af37]/10 text-[#d4af37] border border-[#d4af37]/30 text-xs font-bold rounded-xl uppercase" data-testid="order-status-badge">
+              {orderStatus}
+            </span>
+          </div>
         </div>
         {/* Rejection Notice if applicable */}
         {orderStatus === 'REJECTED' && rejectionReason && (
@@ -559,7 +591,14 @@ const CustomerOrderDetail = () => {
         </div>
       )}
 
-      
+      {cancellingOrder && (
+        <OrderCancellation
+          order={cancellingOrder}
+          isLoading={isCancelling}
+          onClose={() => setCancellingOrder(null)}
+          onCancel={handleCancelOrder}
+        />
+      )}
     </div>
   );
 };

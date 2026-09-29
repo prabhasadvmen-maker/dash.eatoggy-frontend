@@ -31,3 +31,16 @@ export const getCustomerOrderByIdAPI = async (orderId) => {
   const data = await response.json();
   return { status: response.status, ok: response.ok, data };
 };
+
+/**
+ * Cancel an Order
+ */
+export const cancelOrderAPI = async (orderId, reason) => {
+  const response = await fetch(`${API_BASE_URL}/api/customers/orders/${orderId}/cancel`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ reason })
+  });
+  const data = await response.json();
+  return { status: response.status, ok: response.ok, data };
+};
