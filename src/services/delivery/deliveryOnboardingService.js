@@ -8,6 +8,15 @@ const getAuthHeaders = () => {
   };
 };
 
+export const getActiveCities = async () => {
+  const response = await fetch(`${API_BASE_URL}/api/super-admin/cities/active`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  const data = await response.json();
+  return { status: response.status, ok: response.ok, data };
+};
+
 export const getOnboardingFee = async () => {
   const response = await fetch(`${API_BASE_URL}/api/delivery/onboarding/fee`, {
     method: 'GET',

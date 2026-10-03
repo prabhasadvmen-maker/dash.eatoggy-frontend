@@ -268,6 +268,12 @@ const DeliveryHome = () => {
                     <div className="flex items-center gap-2">
                       <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
                       <span className="text-xs font-bold text-emerald-900">VERIFY CUSTOMER OTP TO COMPLETE DELIVERY</span>
+                      {/* TODO: Remove this in production. Just for testing */}
+                      {activeJob.deliveryOtp && (
+                        <span className="ml-auto text-xs font-mono font-bold bg-amber-100 text-amber-800 px-2 py-1 rounded">
+                          Hint: {activeJob.deliveryOtp}
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex gap-3">

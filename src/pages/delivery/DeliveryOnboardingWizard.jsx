@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { deliveryGetMe } from '../../services/delivery/deliveryAuthService';
 import {
+  getActiveCities,
   getOnboardingFee,
   updateProfile,
   updateLocation,
@@ -16,7 +17,7 @@ import {
   User, FileText, CreditCard, ShieldCheck, Bike,
   Check, Upload, ArrowRight, RefreshCw, LogOut, AlertCircle, MapPin
 } from 'lucide-react';
-import { Button, Input, Card, PageHeader, PageLoader, Alert, StatusBadge, LocationSelector } from '../../components/common';
+import { Button, Input, Card, PageHeader, PageLoader, Alert, StatusBadge } from '../../components/common';
 
 const DeliveryOnboardingWizard = () => {
   const navigate = useNavigate();
@@ -33,6 +34,11 @@ const DeliveryOnboardingWizard = () => {
   const [feeInfo, setFeeInfo] = useState({ amount: 499, amountPaise: 49900, currency: 'INR' });
 
   // Form states
+  const [cities, setCities] = useState([]);
+  const [selectedCity, setSelectedCity] = useState('');
+  const [selectedZone, setSelectedZone] = useState('');
+  const [availableZones, setAvailableZones] = useState([]);
+
   const [profileData, setProfileData] = useState({
     fullName: '',
     email: '',
@@ -74,6 +80,12 @@ const DeliveryOnboardingWizard = () => {
     fetchInitialData();
   }, []);
 
+  useEffect(() => {
+    const zones = cities.find(c => c.city === selectedCity)?.zones || [];
+    setAvailableZones(zones);
+    setSelectedZone('');
+  }, [selectedCity, cities]);
+
   const fetchInitialData = async () => {
     setLoading(true);
     try {
@@ -100,6 +112,9 @@ const DeliveryOnboardingWizard = () => {
         vehicleType: prev.vehicleType !== 'Bike' ? prev.vehicleType : (p.vehicleType || 'Bike')
       }));
 
+      if (p.city) setSelectedCity(p.city);
+      if (p.zone) setSelectedZone(p.zone);
+
       if (p.selectedAddress || p.city) {
         setLocationData((prev) => ({
           formattedAddress: prev.formattedAddress || p.selectedAddress || p.city || '',
@@ -110,6 +125,12 @@ const DeliveryOnboardingWizard = () => {
           latitude: prev.latitude ?? p.latitude ?? null,
           longitude: prev.longitude ?? p.longitude ?? null
         }));
+      }
+
+      // Fetch active cities
+      const citiesRes = await getActiveCities();
+      if (citiesRes.ok && citiesRes.data?.data) {
+        setCities(citiesRes.data.data);
       }
 
       // Route if approved
@@ -184,22 +205,25 @@ const DeliveryOnboardingWizard = () => {
       return;
     }
 
-    if (!targetAddress) {
-      setError('Please search and select your location/city address');
+    if (!selectedCity) {
+      setError('Please select your city');
+      return;
+    }
+
+    if (!selectedZone) {
+      setError('Please select your zone');
       return;
     }
 
     setActionLoading(true);
     try {
-      const targetCity = locationData.city || targetAddress || 'Standard City';
-      const targetZone = locationData.city || targetAddress || 'Standard Zone';
-
-      // 1. Update Profile (passes zone derived from city/address to satisfy backend API validation)
+      // 1. Update Profile
       const res = await updateProfile({
         fullName: profileData.fullName,
         email: profileData.email,
-        city: targetCity,
-        zone: targetZone,
+        city: selectedCity,
+        zone: selectedZone,
+        cityandzone: `${selectedCity}(${selectedZone})`,
         vehicleType: profileData.vehicleType
       });
 
@@ -209,9 +233,9 @@ const DeliveryOnboardingWizard = () => {
         return;
       }
 
-      // 2. Update Location so backend currentStep advances to DOCUMENTS
+      // 2. Update Location
       const locRes = await updateLocation({
-        selectedAddress: targetAddress,
+        selectedAddress: `${selectedZone}, ${selectedCity}`,
         latitude: locationData.latitude,
         longitude: locationData.longitude
       });
@@ -542,25 +566,51 @@ const DeliveryOnboardingWizard = () => {
                   />
                 </div>
 
-                {/* Location Selector (Replaces City text input, NO Operational Zone) */}
+                {/* City & Zone Dropdowns */}
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-                  <LocationSelector
-                    label="Location / City"
-                    id="onboard-location-search"
-                    value={locationData}
-                    onChange={handleLocationSelect}
-                    placeholder="Search location or address..."
-                    required
-                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
+                        City *
+                      </label>
+                      <select
+                        value={selectedCity}
+                        onChange={(e) => setSelectedCity(e.target.value)}
+                        required
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#d4af37] focus:border-transparent"
+                      >
+                        <option value="">Select City</option>
+                        {cities.map((c) => (
+                          <option key={c._id} value={c.city}>{c.city}</option>
+                        ))}
+                      </select>
+                    </div>
 
-                  {locationData.selectedAddress && (
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
+                        Zone *
+                      </label>
+                      <select
+                        value={selectedZone}
+                        onChange={(e) => setSelectedZone(e.target.value)}
+                        required
+                        disabled={!selectedCity}
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#d4af37] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <option value="">Select Zone</option>
+                        {availableZones.map((z) => (
+                          <option key={z._id} value={z.name}>{z.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {selectedCity && selectedZone && (
                     <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
-                      <span className="text-[11px] uppercase tracking-wider font-bold text-slate-500 block">
-                        Selected Address
-                      </span>
+                      <span className="text-[11px] uppercase tracking-wider font-bold text-slate-500 block">Selected Location</span>
                       <p className="text-xs text-slate-800 font-medium flex items-center gap-1.5">
                         <MapPin className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
-                        <span>{locationData.selectedAddress}</span>
+                        {selectedZone}, {selectedCity}
                       </p>
                     </div>
                   )}
@@ -572,7 +622,7 @@ const DeliveryOnboardingWizard = () => {
                     Vehicle Type *
                   </label>
                   <div className="grid grid-cols-3 gap-3">
-                    {['Bike', 'Scooter', 'Car'].map((v) => (
+                    {['Bike', 'Scooter', 'EV Bike'].map((v) => (
                       <button
                         key={v}
                         type="button"
