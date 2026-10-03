@@ -66,3 +66,36 @@ export const getCustomerOrderTracking = async (orderId) => {
   });
   return await response.json();
 };
+
+export const getEarnings = async () => {
+  const response = await fetch(`${API_BASE_URL}/api/delivery/earnings`, {
+    method: 'GET',
+    headers: getHeaders('deliveryToken')
+  });
+  return await response.json();
+};
+
+export const getCompletedDeliveries = async (page = 1, limit = 10) => {
+  const response = await fetch(`${API_BASE_URL}/api/delivery/completed-deliveries?page=${page}&limit=${limit}`, {
+    method: 'GET',
+    headers: getHeaders('deliveryToken')
+  });
+  return await response.json();
+};
+
+export const getPartnerProfile = async () => {
+  const response = await fetch(`${API_BASE_URL}/api/delivery-auth/me`, {
+    method: 'GET',
+    headers: getHeaders('deliveryToken')
+  });
+  return await response.json();
+};
+
+export const updatePartnerProfile = async (data) => {
+  const response = await fetch(`${API_BASE_URL}/api/delivery/me`, {
+    method: 'PATCH',
+    headers: getHeaders('deliveryToken'),
+    body: JSON.stringify(data)
+  });
+  return await response.json();
+};
