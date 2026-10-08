@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, StatusBadge } from '../common';
-import { getEarnings } from '../../services/delivery/deliveryOrderService';
+import { getEarnings, withdrawEarnings } from '../../services/delivery/deliveryOrderService';
 import { Wallet, IndianRupee, ArrowDownRight, ArrowUpRight, Calendar, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -40,13 +40,27 @@ const EarningsTab = () => {
     fetchEarnings();
   }, []);
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
     if (!earningsData || earningsData.walletBalance < 500) {
       toast.error('Minimum withdrawal amount is ₹500');
       return;
     }
-    toast.success('Withdrawal request submitted! It will be processed in 1-2 business days.');
-    // Here we would normally call a withdraw API endpoint
+    
+    try {
+      const res = await withdrawEarnings(earningsData.walletBalance);
+      if (res.success) {
+        toast.success('Withdrawal request submitted! It will be processed in 1-2 business days.');
+        // Refresh data
+        const response = await getEarnings();
+        if (response.success && response.data) {
+          setEarningsData(response.data);
+        }
+      } else {
+        toast.error(res.message || 'Failed to submit withdrawal request');
+      }
+    } catch (error) {
+      toast.error('An error occurred while submitting withdrawal');
+    }
   };
 
   if (loading) {

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { deliverySendOtp, deliveryVerifyOtp } from '../../services/delivery/deliveryAuthService';
+import { deliverySendOtp, deliveryVerifyOtp, deliveryResendOtp } from '../../services/delivery/deliveryAuthService';
 import { Bike, Smartphone, KeyRound, ArrowRight } from 'lucide-react';
 import { Button, Input, Alert, Card } from '../../components/common';
 
@@ -12,7 +12,17 @@ const DeliveryRegistration = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
 
+  useEffect(() => {
+    let interval;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
   const handleSendOtp = async (e) => {
     e.preventDefault();
     setError('');
@@ -34,8 +44,29 @@ const DeliveryRegistration = () => {
 
       setSuccess('OTP sent successfully!');
       setStep('OTP');
+      setResendTimer(30);
     } catch (err) {
       setError(err.message || 'Something went wrong while sending OTP');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setError('');
+    setSuccess('');
+    setLoading(true);
+    
+    try {
+      const res = await deliveryResendOtp(mobile);
+      if (!res.ok) {
+        setError(res.data.message || 'Failed to resend OTP');
+        return;
+      }
+      setSuccess('OTP resent successfully!');
+      setResendTimer(30);
+    } catch (err) {
+      setError(err.message || 'Something went wrong while resending OTP');
     } finally {
       setLoading(false);
     }
@@ -145,13 +176,23 @@ const DeliveryRegistration = () => {
                 Verify & Continue
               </Button>
 
-              <button
-                type="button"
-                onClick={() => setStep('MOBILE')}
-                className="w-full text-center text-xs text-slate-500 hover:text-slate-800 mt-2 font-medium transition-all"
-              >
-                Change Mobile Number
-              </button>
+              <div className="flex justify-between items-center mt-4">
+                <button
+                  type="button"
+                  onClick={() => setStep('MOBILE')}
+                  className="text-xs text-slate-500 hover:text-slate-800 font-medium transition-all"
+                >
+                  Change Mobile Number
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={resendTimer > 0 || loading}
+                  className={`text-xs font-medium transition-all ${resendTimer > 0 ? 'text-slate-400 cursor-not-allowed' : 'text-[#a58523] hover:text-[#886d1b]'}`}
+                >
+                  {resendTimer > 0 ? `Resend OTP in ${resendTimer}s` : 'Resend OTP'}
+                </button>
+              </div>
             </form>
           )}
 

@@ -191,7 +191,7 @@ const CustomerHome = () => {
                         >
                           <div className="w-10 h-10 bg-gray-50 border border-gray-100 rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
                             {rest.documents?.restaurantImage ? (
-                              <img src={rest.documents.restaurantImage} className="w-full h-full object-cover" />
+                              <img src={rest.documents.restaurantImage} className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.src = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&h=500&fit=crop"; }} />
                             ) : <UtensilsCrossed size={20} className="text-gray-300" />}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -215,7 +215,7 @@ const CustomerHome = () => {
                         >
                           <div className="w-10 h-10 bg-gray-50 border border-gray-100 rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
                             {item.image ? (
-                              <img src={item.image} className="w-full h-full object-cover" />
+                              <img src={item.image} className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&h=500&fit=crop"; }} />
                             ) : <UtensilsCrossed size={20} className="text-gray-300" />}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -286,7 +286,7 @@ const CustomerHome = () => {
         {collections.length > 0 && (
           <div className="space-y-3" data-testid="curated-collections">
             <h3 className="text-base sm:text-lg font-bold text-gray-900 px-1">Curated Collections</h3>
-            <div className="flex overflow-x-auto hide-scrollbar gap-2 pb-2 px-1">
+            <div className="flex overflow-x-auto custom-scrollbar gap-3 pb-4 px-1">
               <button 
                 onClick={() => setActiveCollection('All')}
                 className={`shrink-0 px-4 py-2 rounded-2xl text-xs font-bold border transition-all cursor-pointer ${
@@ -330,49 +330,96 @@ const CustomerHome = () => {
             </div>
             
             {filteredGourmet.length > 0 ? (
-              <div className="flex overflow-x-auto hide-scrollbar gap-4 pb-4 px-1">
+              <div className="flex overflow-x-auto custom-scrollbar gap-5 pb-6 px-1 pt-2">
                 {filteredGourmet.map(item => (
                   <div 
                     key={item._id} 
                     onClick={() => setSelectedFoodItem(item)}
-                    className="w-[160px] sm:w-[200px] shrink-0 bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-lg cursor-pointer hover:border-gray-200 transition-all" 
+                    className="w-[280px] shrink-0 bg-white border border-gray-100 p-4 rounded-3xl flex gap-4 hover:shadow-xl hover:border-[#d4af37]/30 transition-all cursor-pointer" 
                     data-testid="gourmet-card"
                   >
-                    <div className="h-28 sm:h-32 bg-gray-50 relative">
-                      {item.image ? (
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <UtensilsCrossed size={32} className="m-auto h-full text-gray-300 opacity-50" />
-                      )}
-                      {/* Veg/NonVeg Marker */}
-                      {item.foodType && (
-                        <div className="absolute top-2 right-2 w-4 h-4 bg-white rounded flex items-center justify-center p-0.5 shadow">
-                          <div className={`w-full h-full rounded-full border-2 ${item.foodType.toLowerCase() === 'veg' ? 'border-green-600 bg-green-600' : 'border-red-600 bg-red-600'}`}></div>
+                    {/* Left: Info */}
+                    <div className="flex-1 flex flex-col">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <div className={`w-4 h-4 rounded-sm border flex items-center justify-center ${
+                          item.foodType === 'VEG' ? 'border-emerald-600' : 'border-red-600'
+                        }`}>
+                          <div className={`w-2 h-2 rounded-full ${
+                            item.foodType === 'VEG' ? 'bg-emerald-600' : 'bg-red-600'
+                          }`}></div>
                         </div>
-                      )}
+                      </div>
+                      <h4 className="text-sm font-bold text-gray-900 line-clamp-2 leading-tight mb-1">{item.name}</h4>
+                      <div className="text-[15px] font-black text-gray-900 mb-1">₹{item.price}</div>
+                      <p className="text-[10px] text-gray-500 mt-auto truncate flex items-center gap-1 bg-gray-50 w-max px-2 py-1 rounded-md">
+                        <UtensilsCrossed size={10} className="text-[#d4af37]" /> {item.restaurantId?.restaurantName}
+                      </p>
                     </div>
-                    <div className="p-3 flex flex-col h-full">
-                      <h4 className="text-sm font-bold text-gray-900 line-clamp-1">{item.name}</h4>
-                      <p className="text-[10px] text-gray-500 mt-0.5 truncate">{item.restaurantId?.restaurantName}</p>
-                      
-                      <div className="flex items-center gap-1 mt-1.5 mb-2">
-                        <CheckCircle size={10} className="text-emerald-500" />
-                        <span className="text-[9px] text-emerald-500 font-bold uppercase tracking-wider">Hygiene Verified</span>
+
+                    {/* Right: Image & Button */}
+                    <div className="relative shrink-0 flex flex-col items-center w-[100px]">
+                      <div className="w-[100px] h-[100px] bg-gray-50 rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+                        {item.image ? (
+                          <img src={item.image} alt={item.name} className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&h=500&fit=crop"; }} />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <UtensilsCrossed size={20} className="text-gray-300" />
+                          </div>
+                        )}
                       </div>
                       
-                      <div className="mt-auto flex items-center justify-between">
-                        <span className="text-sm font-black text-gray-900">₹{item.price}</span>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            addToCart(item._id, 1);
-                          }}
-                          disabled={actionLoading}
-                          className="bg-[#d4af37] text-slate-950 px-2.5 py-1.5 rounded-lg text-[10px] font-extrabold shadow hover:brightness-110 cursor-pointer disabled:opacity-50"
-                          data-testid="add-to-box"
-                        >
-                          ADD
-                        </button>
+                      <div className="absolute -bottom-3 z-10" onClick={(e) => e.stopPropagation()}>
+                        {(() => {
+                          const cartItem = cart?.items?.find(
+                            ci => ci.menuItemId === item._id || ci.menuItemId?._id === item._id
+                          );
+                          const currentQty = cartItem ? cartItem.quantity : 0;
+
+                          if (currentQty > 0) {
+                            return (
+                              <div className="flex items-center justify-between bg-white border border-[#d4af37] text-[#d4af37] rounded-xl overflow-hidden shadow-lg w-20 h-8">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (currentQty <= 1) {
+                                      removeFromCart(item._id);
+                                    } else {
+                                      updateQuantity(item._id, currentQty - 1);
+                                    }
+                                  }}
+                                  disabled={actionLoading}
+                                  className="w-1/3 h-full flex items-center justify-center hover:bg-gray-50 transition-colors font-bold cursor-pointer disabled:opacity-50"
+                                >
+                                  -
+                                </button>
+                                <span className="w-1/3 text-center font-black text-xs text-gray-900">{currentQty}</span>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateQuantity(item._id, currentQty + 1);
+                                  }}
+                                  disabled={actionLoading}
+                                  className="w-1/3 h-full flex items-center justify-center hover:bg-gray-50 transition-colors font-bold cursor-pointer disabled:opacity-50"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addToCart(item._id, 1);
+                              }}
+                              disabled={actionLoading}
+                              className="px-4 h-8 bg-white text-emerald-600 border border-emerald-600 hover:bg-emerald-50 rounded-xl text-[11px] font-black shadow-lg transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center min-w-[80px]"
+                            >
+                              ADD
+                            </button>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -409,7 +456,7 @@ const CustomerHome = () => {
                 >
                   <div className="h-44 sm:h-48 relative overflow-hidden bg-gray-50">
                     {rest.documents?.restaurantImage ? (
-                      <img src={rest.documents.restaurantImage} alt={rest.restaurantName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <img src={rest.documents.restaurantImage} alt={rest.restaurantName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => { e.target.onerror = null; e.target.src = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&h=500&fit=crop"; }} />
                     ) : (
                       <div className="absolute inset-0 flex flex-col justify-center items-center text-gray-300 bg-gray-50">
                         <UtensilsCrossed size={32} className="mb-2 opacity-40"/>

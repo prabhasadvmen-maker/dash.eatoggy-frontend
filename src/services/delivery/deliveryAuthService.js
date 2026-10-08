@@ -10,6 +10,16 @@ export const deliverySendOtp = async (mobile) => {
   return { status: response.status, ok: response.ok, data };
 };
 
+export const deliveryResendOtp = async (mobile) => {
+  const response = await fetch(`${API_BASE_URL}/api/delivery-auth/resend-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mobile })
+  });
+  const data = await response.json();
+  return { status: response.status, ok: response.ok, data };
+};
+
 export const deliveryVerifyOtp = async ({ mobile, otp }) => {
   const response = await fetch(`${API_BASE_URL}/api/delivery-auth/verify-otp`, {
     method: 'POST',

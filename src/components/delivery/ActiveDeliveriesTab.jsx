@@ -15,7 +15,7 @@ const ActiveDeliveriesTab = ({ activeJob, setActiveJob, onNavigate }) => {
       const res = await updateDeliveryStatus(activeJob._id, newStatus);
       if (res.success) {
         toast.success(`Status updated to ${newStatus.replace(/_/g, ' ')}`);
-        setActiveJob({ ...activeJob, status: newStatus });
+        setActiveJob({ ...activeJob, deliveryStatus: newStatus });
       } else {
         toast.error(res.message || 'Failed to update status');
       }
@@ -67,7 +67,7 @@ const ActiveDeliveriesTab = ({ activeJob, setActiveJob, onNavigate }) => {
     <div className="space-y-6 animate-fadeIn">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold text-slate-800">Active Delivery</h2>
-        <StatusBadge status={activeJob.status} />
+        <StatusBadge status={activeJob.deliveryStatus || activeJob.status} />
       </div>
 
       <Card className="p-0 overflow-hidden border-2 border-[#d4af37]">
@@ -87,9 +87,9 @@ const ActiveDeliveriesTab = ({ activeJob, setActiveJob, onNavigate }) => {
               <MapPin size={14} className="text-slate-500" />
             </div>
             <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-1">Pickup</h3>
-            <p className="font-bold text-lg">{activeJob.restaurantName || 'Restaurant'}</p>
-            <p className="text-slate-600 text-sm mb-3">{activeJob.restaurantAddress || 'Loading address...'}</p>
-            <Button variant="outline" size="sm" className="text-xs" onClick={() => window.open(`tel:${activeJob.restaurantPhone || ''}`)}>
+            <p className="font-bold text-lg">{activeJob.restaurantSnapshot?.name || 'Restaurant'}</p>
+            <p className="text-slate-600 text-sm mb-3">{activeJob.restaurantSnapshot?.address || 'Loading address...'}</p>
+            <Button variant="outline" size="sm" className="text-xs" onClick={() => window.open(`tel:${activeJob.restaurantSnapshot?.mobile || ''}`)}>
               <Phone size={14} className="mr-1" /> Call Restaurant
             </Button>
           </div>
@@ -100,9 +100,9 @@ const ActiveDeliveriesTab = ({ activeJob, setActiveJob, onNavigate }) => {
               <Navigation size={14} className="text-[#d4af37]" />
             </div>
             <h3 className="text-sm font-semibold text-[#d4af37] uppercase tracking-wide mb-1">Drop</h3>
-            <p className="font-bold text-lg">{activeJob.customerName || 'Customer'}</p>
-            <p className="text-slate-600 text-sm mb-3">{activeJob.customerAddress?.fullAddress || activeJob.deliveryAddress?.addressLine1 || 'Loading address...'}</p>
-            <Button variant="outline" size="sm" className="text-xs" onClick={() => window.open(`tel:${activeJob.customerPhone || ''}`)}>
+            <p className="font-bold text-lg">{activeJob.customerSnapshot?.name || 'Customer'}</p>
+            <p className="text-slate-600 text-sm mb-3">{activeJob.customerSnapshot?.addressLine1 || 'Loading address...'}, {activeJob.customerSnapshot?.city || ''}</p>
+            <Button variant="outline" size="sm" className="text-xs" onClick={() => window.open(`tel:${activeJob.customerSnapshot?.mobile || ''}`)}>
               <Phone size={14} className="mr-1" /> Call Customer
             </Button>
           </div>
@@ -112,7 +112,7 @@ const ActiveDeliveriesTab = ({ activeJob, setActiveJob, onNavigate }) => {
           <div className="flex justify-between items-center mb-6 bg-slate-50 p-4 rounded-lg">
             <div>
               <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">Earning</p>
-              <p className="text-xl font-bold text-green-600">₹{activeJob.deliveryFee || '0'}</p>
+              <p className="text-xl font-bold text-green-600">₹{activeJob.pricingSnapshot?.deliveryFee || '0'}</p>
             </div>
             <div className="text-right">
               <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">Payment</p>
@@ -122,7 +122,7 @@ const ActiveDeliveriesTab = ({ activeJob, setActiveJob, onNavigate }) => {
 
           {/* Action Buttons based on status */}
           <div className="space-y-3">
-            {activeJob.status === 'ACCEPTED' && (
+            {activeJob.deliveryStatus === 'ACCEPTED' && (
               <Button 
                 fullWidth 
                 size="lg" 
@@ -134,7 +134,7 @@ const ActiveDeliveriesTab = ({ activeJob, setActiveJob, onNavigate }) => {
               </Button>
             )}
 
-            {activeJob.status === 'PICKED_UP' && (
+            {activeJob.deliveryStatus === 'PICKED_UP' && (
               <Button 
                 fullWidth 
                 size="lg" 
@@ -146,7 +146,7 @@ const ActiveDeliveriesTab = ({ activeJob, setActiveJob, onNavigate }) => {
               </Button>
             )}
 
-            {activeJob.status === 'OUT_FOR_DELIVERY' && (
+            {activeJob.deliveryStatus === 'OUT_FOR_DELIVERY' && (
               <div className="bg-amber-50 p-4 rounded-xl border border-amber-200">
                 <h4 className="font-semibold text-amber-800 mb-3 text-center">Verify Delivery OTP</h4>
                 <form onSubmit={handleVerifyOtp} className="flex space-x-2">

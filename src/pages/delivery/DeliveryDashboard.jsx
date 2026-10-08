@@ -4,7 +4,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { PageLoader } from '../../components/common';
 import DeliveryTabNav from '../../components/delivery/DeliveryTabNav';
-import { getPartnerProfile, getActiveJob } from '../../services/delivery/deliveryOrderService';
+import { getPartnerProfile, getActiveJob, getDashboardData, updatePartnerStatusData } from '../../services/delivery/deliveryOrderService';
 import { Menu, X } from 'lucide-react';
 
 // Lazy loading tabs for performance
@@ -39,19 +39,43 @@ const DeliveryDashboard = () => {
           return;
         }
 
-        // Fetch partner profile and active jobs concurrently
-        const [profileRes, activeJobRes] = await Promise.allSettled([
+        // Fetch partner profile, active jobs, and dashboard data concurrently
+        const [profileRes, activeJobRes, dashboardRes] = await Promise.allSettled([
           getPartnerProfile(),
-          getActiveJob()
+          getActiveJob(),
+          getDashboardData()
         ]);
 
+        let pData = null;
         if (profileRes.status === 'fulfilled' && (profileRes.value.success || profileRes.value.data)) {
           // Account for standard response {success, data} and auth response formats
-          const pData = profileRes.value.data?.partner || profileRes.value.data || profileRes.value;
+          pData = profileRes.value.data?.partner || profileRes.value.data || profileRes.value;
+        }
+
+        if (pData) {
+          if (dashboardRes.status === 'fulfilled' && dashboardRes.value.success && dashboardRes.value.data) {
+            const dashData = dashboardRes.value.data;
+            pData = {
+              ...pData,
+              todaysEarnings: dashData.totalEarnings || 0,
+              todaysDeliveries: dashData.completedDeliveries || 0,
+              activeJobsCount: dashData.pendingDeliveries || 0,
+              timeOnline: '0h 0m' // Compute if we have login timestamps, otherwise placeholder
+            };
+          } else {
+             // Fallbacks if dashboard endpoint fails
+             pData = {
+               ...pData,
+               todaysEarnings: 0,
+               todaysDeliveries: 0,
+               activeJobsCount: 0,
+               timeOnline: '0h 0m'
+             };
+          }
           setPartner(pData);
-          setIsOnline(pData.isOnline !== false);
+          setIsOnline(pData.isOnline !== false && pData.isActive !== false);
         } else {
-          // For demo/development if endpoint fails
+          // For demo/development if endpoint fails entirely
           setPartner({
             _id: 'DP12345',
             fullName: 'Raj Kumar',
@@ -60,7 +84,7 @@ const DeliveryDashboard = () => {
             isOnline: true,
             todaysEarnings: 850,
             todaysDeliveries: 12,
-            activeJobsCount: activeJob ? 1 : 0,
+            activeJobsCount: 1,
             timeOnline: '4h 30m',
             city: 'Delhi NCR'
           });
@@ -88,13 +112,11 @@ const DeliveryDashboard = () => {
 
   const toggleOnlineStatus = async () => {
     try {
-      // In a real app, this would call an endpoint to update the online status
-      // const res = await updatePartnerProfile({ isOnline: !isOnline });
-      setIsOnline(!isOnline);
-      setPartner(prev => ({ ...prev, isOnline: !isOnline }));
-      toast.success(`You are now ${!isOnline ? 'Online' : 'Offline'}`);
-      
-      // If going offline, maybe clear active jobs or something?
+      const newStatus = !isOnline;
+      await updatePartnerStatusData(newStatus);
+      setIsOnline(newStatus);
+      setPartner(prev => ({ ...prev, isOnline: newStatus, isActive: newStatus }));
+      toast.success(`You are now ${newStatus ? 'Online' : 'Offline'}`);
     } catch (error) {
       toast.error('Failed to update status');
     }

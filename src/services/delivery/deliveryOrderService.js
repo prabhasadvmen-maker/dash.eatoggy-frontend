@@ -8,6 +8,23 @@ const getHeaders = (tokenKey = 'deliveryToken') => {
   };
 };
 
+export const getDashboardData = async () => {
+  const response = await fetch(`${API_BASE_URL}/api/delivery/dashboard`, {
+    method: 'GET',
+    headers: getHeaders('deliveryToken')
+  });
+  return await response.json();
+};
+
+export const updatePartnerStatusData = async (isActive) => {
+  const response = await fetch(`${API_BASE_URL}/api/delivery/partner/status`, {
+    method: 'PUT',
+    headers: getHeaders('deliveryToken'),
+    body: JSON.stringify({ isActive })
+  });
+  return await response.json();
+};
+
 export const getAvailableJobs = async () => {
   const response = await fetch(`${API_BASE_URL}/api/delivery/jobs/available`, {
     method: 'GET',
@@ -76,7 +93,7 @@ export const getEarnings = async () => {
 };
 
 export const getCompletedDeliveries = async (page = 1, limit = 10) => {
-  const response = await fetch(`${API_BASE_URL}/api/delivery/completed-deliveries?page=${page}&limit=${limit}`, {
+  const response = await fetch(`${API_BASE_URL}/api/delivery/orders/history?page=${page}&limit=${limit}`, {
     method: 'GET',
     headers: getHeaders('deliveryToken')
   });
@@ -96,6 +113,23 @@ export const updatePartnerProfile = async (data) => {
     method: 'PATCH',
     headers: getHeaders('deliveryToken'),
     body: JSON.stringify(data)
+  });
+  return await response.json();
+};
+
+export const withdrawEarnings = async (amount) => {
+  const response = await fetch(`${API_BASE_URL}/api/delivery/earnings/withdraw`, {
+    method: 'POST',
+    headers: getHeaders('deliveryToken'),
+    body: JSON.stringify({ amount })
+  });
+  return await response.json();
+};
+
+export const getWallet = async () => {
+  const response = await fetch(`${API_BASE_URL}/api/delivery/wallet`, {
+    method: 'GET',
+    headers: getHeaders('deliveryToken')
   });
   return await response.json();
 };

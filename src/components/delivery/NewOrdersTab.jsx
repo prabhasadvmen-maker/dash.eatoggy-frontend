@@ -122,9 +122,9 @@ const NewOrdersTab = ({ activeJob, setActiveJob, isOnline, onNavigate }) => {
                 </div>
                 <div className="text-right">
                   <p className="text-xl font-bold text-green-600 flex items-center justify-end">
-                    <IndianRupee size={16} /> {job.deliveryFee || '0'}
+                    <IndianRupee size={16} /> {job.pricingSnapshot?.deliveryFee || '0'}
                   </p>
-                  <p className="text-xs font-medium text-slate-500">Est. {job.distance || '2.5'} km</p>
+                  <p className="text-xs font-medium text-slate-500">Est. 2.5 km</p>
                 </div>
               </div>
               
@@ -133,14 +133,16 @@ const NewOrdersTab = ({ activeJob, setActiveJob, isOnline, onNavigate }) => {
                   <MapPin size={16} className="text-slate-400 mt-1 mr-2 flex-shrink-0" />
                   <div>
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Pickup</p>
-                    <p className="text-sm font-medium text-slate-800 line-clamp-1">{job.restaurantName || 'Restaurant'}</p>
+                    <p className="text-sm font-medium text-slate-800 line-clamp-1">{job.restaurantSnapshot?.name || 'Restaurant'}</p>
+                    <p className="text-xs text-slate-500 line-clamp-1">{job.restaurantSnapshot?.address || ''}</p>
                   </div>
                 </div>
                 <div className="flex items-start">
                   <Navigation size={16} className="text-[#d4af37] mt-1 mr-2 flex-shrink-0" />
                   <div>
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Drop</p>
-                    <p className="text-sm font-medium text-slate-800 line-clamp-1">{job.dropLocation || 'Customer Address'}</p>
+                    <p className="text-sm font-medium text-slate-800 line-clamp-1">{job.customerSnapshot?.name || 'Customer'}</p>
+                    <p className="text-xs text-slate-500 line-clamp-1">{job.customerSnapshot?.addressLine1 || 'Customer Address'}, {job.customerSnapshot?.city || ''}</p>
                   </div>
                 </div>
               </div>

@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
 import { Card, Button } from '../common';
 import { Power, CheckCircle, Navigation, Clock, ClipboardList } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix Leaflet's default icon path issues
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 const HomeTab = ({ partner, isOnline, toggleOnlineStatus, onNavigateTab }) => {
   const [isToggling, setIsToggling] = useState(false);
@@ -10,6 +21,10 @@ const HomeTab = ({ partner, isOnline, toggleOnlineStatus, onNavigateTab }) => {
     await toggleOnlineStatus();
     setIsToggling(false);
   };
+
+  const defaultPosition = [28.4595, 77.0266]; // Default to Gurugram or partner location
+  const partnerPos = partner?.latitude && partner?.longitude ? [partner.latitude, partner.longitude] : defaultPosition;
+
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -64,18 +79,25 @@ const HomeTab = ({ partner, isOnline, toggleOnlineStatus, onNavigateTab }) => {
         </Card>
       </div>
 
-      {/* Location / Map Placeholder */}
+      {/* Location / Map */}
       <Card className="p-0 overflow-hidden border-slate-200 h-64 relative group cursor-pointer" onClick={() => onNavigateTab('ORDERS')}>
-        <div className="absolute inset-0 bg-slate-200 animate-pulse flex items-center justify-center">
-          {/* A proper map component would go here */}
-          <div className="text-center">
-            <Navigation size={40} className="mx-auto text-slate-400 mb-2" />
-            <p className="text-slate-500 font-medium">Waiting for location data...</p>
-          </div>
+        <div className="absolute inset-0 z-0">
+          <MapContainer center={partnerPos} zoom={13} style={{ height: '100%', width: '100%' }} zoomControl={false} dragging={false} scrollWheelZoom={false}>
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            />
+            {isOnline && (
+              <>
+                <Marker position={partnerPos} />
+                <Circle center={partnerPos} radius={3000} pathOptions={{ fillColor: '#d4af37', color: '#d4af37', fillOpacity: 0.2 }} />
+              </>
+            )}
+          </MapContainer>
         </div>
         
         {/* Map Overlay HUD */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-slate-900/80 to-transparent">
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-slate-900/80 to-transparent z-10">
           <div className="flex justify-between items-end">
             <div className="text-white">
               <p className="text-xs font-semibold uppercase tracking-wider text-amber-400 mb-1">Current Zone</p>

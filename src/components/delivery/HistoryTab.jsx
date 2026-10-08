@@ -91,7 +91,7 @@ const HistoryTab = () => {
                   </p>
                   <p className="text-xs text-slate-500 flex items-center mt-1">
                     <Calendar size={12} className="mr-1" />
-                    {new Date(delivery.createdAt || Date.now()).toLocaleString()}
+                    {new Date(delivery.timestamp || delivery.createdAt || Date.now()).toLocaleString()}
                   </p>
                 </div>
                 <div className="text-right">
@@ -120,7 +120,7 @@ const HistoryTab = () => {
                   <div>
                     <p className="text-xs font-semibold text-[#d4af37] uppercase tracking-wide">Drop</p>
                     <p className="text-sm font-medium text-slate-800 line-clamp-1">
-                      {delivery.customerAddress?.addressLine1 || delivery.dropLocation || 'Customer Address'}
+                      {delivery.customerAddress || 'Customer Address'}
                     </p>
                   </div>
                 </div>
